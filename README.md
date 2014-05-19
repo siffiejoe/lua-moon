@@ -63,7 +63,7 @@ macro substitution.
       size_t            userdata_size;
       void (*initializer)( void* p );
       luaL_Reg const*   metamethods;
-      luaL_Reg const*   methods
+      luaL_Reg const*   methods;
     } moon_object_type;
 
 A struct for collecting all necessary information to define an object
