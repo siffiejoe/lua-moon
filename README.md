@@ -437,7 +437,7 @@ disabled via one of the parameter macros above:
 The last six are metamethods and not supposed to be called from C.
 `moon_flag_def_SUFFIX` defines the new type, creates the metatable and
 registers all metamethods. `moon_flag_new_SUFFIX` pushes a userdata
-representing the give value to the top of the Lua stack, while
+representing the given value to the top of the Lua stack, while
 `moon_flag_get_SUFFIX` returns the corresponding enum value from a
 userdata on the Lua stack.
 
@@ -515,7 +515,7 @@ over the main executable (e.g. you are writing a plugin for a 3rd
 party program), you are out of luck. This header file tries to
 reexport the Lua API from the shared library linked to your plugin to
 make it available for extension modules. It relies on some platform
-specific tricks, so it probably won't work on everywhere.
+specific tricks, so it probably won't work everywhere.
 
 
 ####                         `MOON_DLFIX`                         ####

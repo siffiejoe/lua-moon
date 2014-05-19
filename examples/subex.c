@@ -75,7 +75,7 @@ static int subex_newindex( lua_State* L ) {
 static int subex_new( lua_State* L ) {
   parent* ud = NULL;
   lua_newtable( L );
-  ud = moon_newobject( L, "subex", 1 );
+  ud = moon_newobject( L, "subex", -1 );
   ud->z = 0;
   ud->child.x = 0;
   ud->child.y = 0;
