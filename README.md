@@ -297,8 +297,8 @@ pushes the matching string to the Lua stack. How this matching string
 is obtained depends on the given arguments. If `lookuptable` is
 non-zero, the table at the given index is used to map `val` to a
 string name, otherwise the arrays `values` and `names` (the latter
-must be `NULL`-terminated`) are searched for a match. If no string
-name could be found, the enum value is pushed as a number.
+must be `NULL`-terminated) are searched for a match. If no string name
+could be found, the enum value is pushed as a number.
 
 
 ####                      `moon_checkoption`                      ####
