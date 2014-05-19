@@ -1,0 +1,34 @@
+#!/bin/bash
+
+LUAV=5.1
+#LUAV=5.2
+#LUAV=5.3
+
+case "$LUAV" in
+  5.1)
+    INC=/usr/include/lua5.1
+    LIB=-llua5.1
+    ;;
+  5.2)
+    INC=/usr/include/lua5.2
+    LIB=-llua5.2
+    ;;
+  *)
+    INC=/home/siffiejoe/.self/programs/lua5.3
+    LIB="-L/home/siffiejoe/.self/programs/lua5.3 -llua5.3"
+    ;;
+esac;
+
+x() {
+  echo "#" "$@"; "$@"
+}
+
+x gcc -Wall -Wextra -I"$INC" -I.. -fpic -shared -Os -o objex.so objex.c
+x gcc -Wall -Wextra -I"$INC" -I.. -fpic -shared -Os -o subex.so subex.c
+x gcc -Wall -Wextra -I"$INC" -I.. -fpic -shared -Os -o flgex.so flgex.c
+x gcc -Wall -Wextra -Os -o dlfixex dlfixex.c -ldl
+x gcc -Wall -Wextra -I"$INC" -I.. -fpic -shared -Os -o plugin.so plugin.c $LIB -lm -ldl
+
+exit 0
+
+rm -f objex.so subex.so flgex.so dlfixex plugin.so
