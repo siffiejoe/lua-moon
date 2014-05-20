@@ -501,7 +501,7 @@ disabled via one of the parameter macros above:
 
 The last four are metamethods and not supposed to be called from C.
 `moon_sub_def_SUFFIX` defines the new type, creates the metatable and
-registers all metamethods. `moon_flag_new_SUFFIX` pushes a userdata
+registers all metamethods. `moon_sub_new_SUFFIX` pushes a userdata
 representing the embedded struct to the top of the Lua stack. Use it
 in the `__index` metamethod of the parent userdata.
 
