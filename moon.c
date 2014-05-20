@@ -49,7 +49,7 @@ MOON_API void moon_defobject( lua_State* L,
                               int nups ) {
   lua_CFunction index = 0;
   moon_object_info* info = NULL;
-  luaL_checkstack( L, 2*nups+4, "not enought stack space available" );
+  luaL_checkstack( L, 2*nups+4, "not enough stack space available" );
   if( 0 == luaL_newmetatable( L, t->metatable_name ) )
     luaL_error( L, "type '%s' is already defined", t->metatable_name );
   lua_pushboolean( L, 0 );
@@ -107,7 +107,7 @@ MOON_API void* moon_newobject( lua_State* L, char const* name,
   lua_getfield( L, -1, MOON_PRIVATE_KEY );
   info = lua_touserdata( L, -1 );
   if( info == NULL )
-    luaL_error( L, "'%s' is not a moon object", name );
+    luaL_error( L, "'%s' is not a moon object type", name );
   obj = lua_newuserdata( L, info->size );
   if( info->initializer )
     info->initializer( obj );
@@ -157,7 +157,7 @@ static int moon_dispatch( lua_State* L ) {
 MOON_API void moon_propindex( lua_State* L, luaL_Reg const methods[],
                               lua_CFunction pindex, int nups ) {
   if( methods != NULL ) {
-    luaL_checkstack( L, nups+2, "too many upvalues" );
+    luaL_checkstack( L, nups+2, "not enough stack space available" );
     lua_newtable( L );
     for( ; methods->func; ++methods ) {
       int i = 0;
@@ -420,7 +420,6 @@ MOON_API unsigned moon_checkoption( lua_State* L, int idx,
 
 #ifndef NDEBUG
 #include <stdio.h>
-#include <string.h>
 #include <ctype.h>
 #include <stdarg.h>
 
