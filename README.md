@@ -177,11 +177,11 @@ This function is used in the implementation of `moon_defobject`, but
 maybe it is useful to you independently.
 
 
-####                       `moon_finalizer`                       ####
+####                         `moon_atexit`                        ####
 
     /*  [ -0, +1, e ]  */
-    int* moon_finalizer( lua_State* L,
-                         lua_CFunction cleanup );
+    int* moon_atexit( lua_State* L,
+                      lua_CFunction cleanup );
 
 This function puts an integer-sized userdata (initialized to 0) in the
 registry and sets the given `cleanup` function as `__gc` metamethod.
@@ -191,12 +191,31 @@ Use this function if you want to call a cleanup function when the Lua
 state is closed, but only if some initialization succeeded. The usual
 approach is as follows:
 
-1.  Call `moon_finalizer` registering your cleanup function.
+1.  Call `moon_atexit` registering your cleanup function.
 2.  Do your initialization.
 3.  If successful, you set the `int` pointer to non-zero, which is
     almost atomic and can't fail, and pop the userdata.
 4.  When the cleanup function is called, check for a non-zero value
     before actually cleaning up.
+
+
+####                       `moon_finalizer`                       ####
+
+    /*  [ -0, +0, e ]  */
+    void moon_finalizer( lua_State* L,
+                         int idx );
+
+This function outsources the `__gc` metamethod of the userdata at
+position `idx` to a newly allocated finalizer which is stored in the
+uservalue/environment table of the original userdata, replacing a
+previously stored finalizer if necessary. Both original userdata and
+finalizer will be collected in the same GC cycle, but since the
+finalizer was created at a later time, it will be finalized *sooner*.
+You are responsible for making sure that the `__gc` metamethod will be
+called only once (e.g. by setting the metatable to `nil`) or that it
+can be called on the same userdata multiple times without harm, and
+that the original userdata has a uservalue/environment table in the
+first place.
 
 
 ####                       `moon_preload_c`                       ####

@@ -3,6 +3,7 @@
 local objex = require( "objex" )
 local subex = require( "subex" )
 local flgex = require( "flgex" )
+local finex = require( "finex" )
 
 
 print( _VERSION )
@@ -56,5 +57,18 @@ do
   print( "same but not identical:", flags == flgex.THREE, flags, flgex.THREE )
   print( "better error message for mismatched types:" )
   print( pcall( function() local wrong = flgex.ONE + flgex.THREE end ) )
+  print( ("="):rep( 70 ) )
+end
+
+do
+  print( "[ finex test ]" )
+  do
+    local a = finex.newA()
+    a:before( finex.newB() )
+    a:before( finex.newB() )
+    a:before( finex.newB() )
+  end
+  collectgarbage()
+  print( "objA should have been finalized before *all* objB instances!" )
 end
 

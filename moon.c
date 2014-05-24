@@ -231,7 +231,7 @@ MOON_API void* moon_checkudata( lua_State* L, int i, char const* tname ) {
 #endif
 
 
-MOON_API int* moon_finalizer( lua_State* L, lua_CFunction func ) {
+MOON_API int* moon_atexit( lua_State* L, lua_CFunction func ) {
   int* flag = NULL;
   luaL_checkstack( L, 3, "not enough stack space available" );
   flag = lua_newuserdata( L, sizeof( int ) );
@@ -246,6 +246,45 @@ MOON_API int* moon_finalizer( lua_State* L, lua_CFunction func ) {
   lua_pushvalue( L, -2 );
   lua_settable( L, LUA_REGISTRYINDEX );
   return flag;
+}
+
+
+static int moon_finalizer_gc( lua_State* L ) {
+  int* flag = lua_touserdata( L, 1 );
+  if( *flag ) {
+    lua_getmetatable( L, 1 );
+    lua_rawgeti( L, -1, 1 );
+    if( luaL_getmetafield( L, -1, "__gc" ) &&
+        lua_type( L, -1 ) == LUA_TFUNCTION ) {
+      lua_pushvalue( L, -2 );
+      lua_call( L, 1, 0 );
+    }
+  }
+  return 0;
+}
+
+
+MOON_API void moon_finalizer( lua_State* L, int idx ) {
+  int* flag = NULL;
+  idx = moon_absindex( L, idx );
+  luaL_argcheck( L, lua_type( L, idx ) == LUA_TUSERDATA, idx,
+                 "userdata expected" );
+  luaL_checkstack( L, 3, "not enough stack space available" );
+  flag = lua_newuserdata( L, sizeof( int ) );
+  *flag = 0;
+  lua_createtable( L, 1, 1 );
+  lua_pushvalue( L, idx );
+  lua_rawseti( L, -2, 1 );
+  lua_pushcfunction( L, moon_finalizer_gc );
+  lua_setfield( L, -2, "__gc" );
+  lua_setmetatable( L, -2 );
+  moon_getuvfield( L, idx, MOON_PRIVATE_KEY );
+  lua_pushvalue( L, -2 );
+  moon_setuvfield( L, idx, MOON_PRIVATE_KEY );
+  if( lua_type( L, -1 ) == LUA_TUSERDATA )
+    *(int*)lua_touserdata( L, -1 ) = 0;
+  *flag = 1;
+  lua_pop( L, 2 );
 }
 
 

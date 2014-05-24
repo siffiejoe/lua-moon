@@ -54,6 +54,7 @@
 #define moon_newobject      MOON_CONCAT( MOON_PREFIX, _newobject )
 #define moon_newobject_ref  MOON_CONCAT( MOON_PREFIX, _newobject_ref )
 #define moon_propindex      MOON_CONCAT( MOON_PREFIX, _propindex )
+#define moon_atexit         MOON_CONCAT( MOON_PREFIX, _atexit )
 #define moon_finalizer      MOON_CONCAT( MOON_PREFIX, _finalizer )
 #define moon_preload_c      MOON_CONCAT( MOON_PREFIX, _preload_c )
 #define moon_preload_lua    MOON_CONCAT( MOON_PREFIX, _preload_lua )
@@ -94,7 +95,8 @@ MOON_API void* moon_newobject_ref( lua_State* L, char const* name,
                                    int ref_index );
 MOON_API void moon_propindex( lua_State* L, luaL_Reg const methods[],
                               lua_CFunction pindex, int nups );
-MOON_API int* moon_finalizer( lua_State* L, lua_CFunction func );
+MOON_API int* moon_atexit( lua_State* L, lua_CFunction func );
+MOON_API void moon_finalizer( lua_State* L, int idx );
 MOON_API void moon_preload_c( lua_State* L, luaL_Reg const libs[] );
 MOON_API void moon_preload_lua( lua_State* L,
                                 moon_lua_reg const libs[] );
