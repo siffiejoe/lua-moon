@@ -1,4 +1,4 @@
-#                  Moon -- A Binding Toolkit for Lua                 #
+#                 Moon -- A C Binding Toolkit for Lua                #
 
 This library provides some compatiblity functions/macros to work with
 the Lua C API of Lua 5.1, Lua 5.2, and Lua 5.3 in a uniform way. It
@@ -264,7 +264,7 @@ position `idx`.
 
 This function works similar to `luaL_getmetafield`, but it looks for
 `key` in the environment/uservalue table of the object at index `idx`,
-and pushed the corresponding value to the top of the stack. If there
+and pushes the corresponding value to the top of the stack. If there
 is no uservalue table or no such field, `nil` is pushed instead. The
 return value is the type of the pushed value.
 
