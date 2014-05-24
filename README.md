@@ -211,11 +211,8 @@ uservalue/environment table of the original userdata, replacing a
 previously stored finalizer if necessary. Both original userdata and
 finalizer will be collected in the same GC cycle, but since the
 finalizer was created at a later time, it will be finalized *sooner*.
-You are responsible for making sure that the `__gc` metamethod will be
-called only once (e.g. by setting the metatable to `nil`) or that it
-can be called on the same userdata multiple times without harm, and
-that the original userdata has a uservalue/environment table in the
-first place.
+You are responsible for making sure that the original userdata has a
+uservalue/environment table.
 
 
 ####                       `moon_preload_c`                       ####

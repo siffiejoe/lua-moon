@@ -256,8 +256,13 @@ static int moon_finalizer_gc( lua_State* L ) {
     lua_rawgeti( L, -1, 1 );
     if( luaL_getmetafield( L, -1, "__gc" ) &&
         lua_type( L, -1 ) == LUA_TFUNCTION ) {
+      int err = 0;
       lua_pushvalue( L, -2 );
-      lua_call( L, 1, 0 );
+      err = lua_pcall( L, 1, 1, 0 );
+      lua_pushnil( L );
+      lua_setmetatable( L, -3 );
+      if( err )
+        lua_error( L );
     }
   }
   return 0;

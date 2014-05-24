@@ -10,8 +10,6 @@ typedef int objB;
 
 static int objA_gc( lua_State* L ) {
   objA* a = moon_checkudata( L, 1, "objA" );
-  lua_pushnil( L );
-  lua_setmetatable( L, 1 );
   printf( "objA finalizer called for %p\n", (void*)a );
   return 0;
 }
