@@ -293,6 +293,44 @@ MOON_API void moon_finalizer( lua_State* L, int idx ) {
 }
 
 
+typedef struct {
+  void* ptr;
+  void (*releasef)( void* );
+} moon_resource_info;
+
+
+static int moon_resource_gc( lua_State* L ) {
+  void* ptr = lua_touserdata( L, 1 );
+  moon_release( ptr );
+  return 0;
+}
+
+
+MOON_API void** moon_resource( lua_State* L,
+                               void (*releasef)( void* ) ) {
+  moon_resource_info* info = NULL;
+  luaL_checkstack( L, 3, "not enough stack space available" );
+  info = lua_newuserdata( L, sizeof( *info ) );
+  info->ptr = NULL;
+  info->releasef = releasef;
+  if( luaL_newmetatable( L, MOON_PRIVATE_KEY ) ) {
+    lua_pushcfunction( L, moon_resource_gc );
+    lua_setfield( L, -2, "__gc" );
+  }
+  lua_setmetatable( L, -2 );
+  return &info->ptr;
+}
+
+
+MOON_API void moon_release( void** ptr ) {
+  moon_resource_info* info = (moon_resource_info*)ptr;
+  void* p = info->ptr;
+  info->ptr = NULL;
+  if( p )
+    info->releasef( p );
+}
+
+
 MOON_API void moon_preload_c( lua_State* L, luaL_Reg const libs[] ) {
   int top = lua_gettop( L );
   luaL_checkstack( L, 3, "not enough stack space available" );

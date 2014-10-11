@@ -56,6 +56,8 @@
 #define moon_propindex      MOON_CONCAT( MOON_PREFIX, _propindex )
 #define moon_atexit         MOON_CONCAT( MOON_PREFIX, _atexit )
 #define moon_finalizer      MOON_CONCAT( MOON_PREFIX, _finalizer )
+#define moon_resource       MOON_CONCAT( MOON_PREFIX, _resource )
+#define moon_release        MOON_CONCAT( MOON_PREFIX, _release )
 #define moon_preload_c      MOON_CONCAT( MOON_PREFIX, _preload_c )
 #define moon_preload_lua    MOON_CONCAT( MOON_PREFIX, _preload_lua )
 #define moon_setuvfield     MOON_CONCAT( MOON_PREFIX, _setuvfield )
@@ -97,6 +99,9 @@ MOON_API void moon_propindex( lua_State* L, luaL_Reg const methods[],
                               lua_CFunction pindex, int nups );
 MOON_API int* moon_atexit( lua_State* L, lua_CFunction func );
 MOON_API void moon_finalizer( lua_State* L, int idx );
+MOON_API void** moon_resource( lua_State* L,
+                               void (*releasef)( void* ) );
+MOON_API void moon_release( void** ptr );
 MOON_API void moon_preload_c( lua_State* L, luaL_Reg const libs[] );
 MOON_API void moon_preload_lua( lua_State* L,
                                 moon_lua_reg const libs[] );

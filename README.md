@@ -212,7 +212,33 @@ previously stored finalizer if necessary. Both original userdata and
 finalizer will be collected in the same GC cycle, but since the
 finalizer was created at a later time, it will be finalized *sooner*.
 You are responsible for making sure that the original userdata has a
-uservalue/environment table.
+uservalue/environment table. You can use this function to modify the
+order in which userdata are collected in the same GC cycle.
+
+
+####                        `moon_resource`                       ####
+
+    /*  [ -0, +1, e ]  */
+    void** moon_resource( lua_State* L,
+                          void (*releasef)( void* ) );
+
+Allocates a userdata with enough space to store a `void` pointer and
+registers a finalizer to call `releasef` unless the pointer is `NULL`
+(the default). Use this to make sure that a resource external to Lua
+is always cleaned up, even in case an unexpected error is thrown. The
+userdata is pushed onto the stack, so it won't be collected before the
+function returns, but you can use `moon_release` to free the resource
+before that.
+
+
+####                        `moon_release`                        ####
+
+    /*  [ -0, +0, - ]  */
+    void moon_release( void** resource );
+
+Releases a resource allocated via `moon_resource` by calling its
+`releasef` function pointer. The resource is also set to NULL, so that
+the garbage collector won't release it a second time.
 
 
 ####                       `moon_preload_c`                       ####
