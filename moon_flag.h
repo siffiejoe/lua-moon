@@ -36,46 +36,6 @@
 #  define MOON_FLAG_EQMETHOD( a, b ) ((a) == (b))
 #endif
 
-#ifndef MOON_FLAG_NOBITOPS
-static int MOON_FLAG_ADD( lua_State* L );
-static int MOON_FLAG_SUB( lua_State* L );
-static int MOON_FLAG_CALL( lua_State* L );
-#if LUA_VERSION_NUM > 502
-static int MOON_FLAG_AND( lua_State* L );
-static int MOON_FLAG_NOT( lua_State* L );
-#endif
-#endif
-#ifndef MOON_FLAG_NORELOPS
-static int MOON_FLAG_EQ( lua_State* L );
-#endif
-
-
-static void MOON_FLAG_DEF( lua_State* L, int nups ) {
-  luaL_Reg const metamethods[] = {
-#ifndef MOON_FLAG_NOBITOPS
-    { "__add", MOON_FLAG_ADD },
-    { "__sub", MOON_FLAG_SUB },
-    { "__call", MOON_FLAG_CALL },
-#if LUA_VERSION_NUM > 502
-    { "__band", MOON_FLAG_AND },
-    { "__bor", MOON_FLAG_ADD },
-    { "__bnot", MOON_FLAG_NOT },
-#endif
-#endif
-#ifndef MOON_FLAG_NORELOPS
-    { "__eq", MOON_FLAG_EQ },
-#endif
-    { NULL, NULL }
-  };
-  moon_object_type const flag_type = {
-    MOON_FLAG_NAME,
-    sizeof( MOON_FLAG_TYPE ),
-    0, /* NULL (function) pointer */
-    metamethods,
-    NULL, /* no methods */
-  };
-  moon_defobject( L, &flag_type, nups );
-}
 
 static void MOON_FLAG_NEW( lua_State* L, MOON_FLAG_TYPE v ) {
 #ifdef MOON_FLAG_USECACHE
@@ -159,6 +119,33 @@ static int MOON_FLAG_EQ( lua_State* L ) {
   return 1;
 }
 #endif
+
+static void MOON_FLAG_DEF( lua_State* L, int nups ) {
+  luaL_Reg const metamethods[] = {
+#ifndef MOON_FLAG_NOBITOPS
+    { "__add", MOON_FLAG_ADD },
+    { "__sub", MOON_FLAG_SUB },
+    { "__call", MOON_FLAG_CALL },
+#if LUA_VERSION_NUM > 502
+    { "__band", MOON_FLAG_AND },
+    { "__bor", MOON_FLAG_ADD },
+    { "__bnot", MOON_FLAG_NOT },
+#endif
+#endif
+#ifndef MOON_FLAG_NORELOPS
+    { "__eq", MOON_FLAG_EQ },
+#endif
+    { NULL, NULL }
+  };
+  moon_object_type const flag_type = {
+    MOON_FLAG_NAME,
+    sizeof( MOON_FLAG_TYPE ),
+    0, /* NULL (function) pointer */
+    metamethods,
+    NULL, /* no methods */
+  };
+  moon_defobject( L, &flag_type, nups );
+}
 
 
 #undef MOON_FLAG_ADD

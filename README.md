@@ -14,7 +14,7 @@ header file wherever you want to call one of the macros/functions
 defined within. If you just have a single source file where you want
 to use those functions, you are done: `moon.h` includes `moon.c` and
 makes every function `static`. If you have multiple source files that
-need functions/macros from this library this approach is flawed,
+need functions/macros from this library, this approach is flawed,
 because you will end up with multiple versions of the same functions.
 Instead include the header wherever you need it, but when you compile
 those source files, define the macro `MOON_PREFIX` to a unique name
@@ -97,10 +97,10 @@ function if necessary.
     } moon_lua_reg;
 
 This struct is used in a similar way as `luaL_Reg` but for registering
-embedded lua modules (using `moon_preload_lua`).
+embedded Lua modules (using `moon_preload_lua`).
 `require_name` is the module name that should be passed to the
 `require` function in order to load this module.
-`error_name` is used in error messages. If your lua code came from an
+`error_name` is used in error messages. If your Lua code came from an
 external file, `error_name` should start with an `@` as usual.
 `code` is the actual Lua code (possibly precompiled) as a C array. The
 length in bytes of this C array is given as the `code_length` field.
@@ -237,8 +237,8 @@ before that.
     void moon_release( void** resource );
 
 Releases a resource allocated via `moon_resource` by calling its
-`releasef` function pointer. The resource is also set to NULL, so that
-the garbage collector won't release it a second time.
+`releasef` function pointer. The resource is also set to `NULL`, so
+that the garbage collector won't release it a second time.
 
 
 ####                       `moon_preload_c`                       ####
