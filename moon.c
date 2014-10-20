@@ -392,7 +392,7 @@ MOON_API int moon_getuvfield( lua_State* L, int i, char const* key ) {
 
 MOON_API void moon_light2full( lua_State* L, int index ) {
   static char xyz = 0; /* used as a unique key */
-  luaL_checkstack( L, 5, "not enough stack space available" );
+  luaL_checkstack( L, 3, "not enough stack space available" );
   index = moon_absindex( L, index );
   lua_pushlightuserdata( L, &xyz );
   lua_rawget( L, index );
@@ -419,10 +419,10 @@ MOON_API void moon_lookuptable( lua_State* L,
   lua_newtable( L );
   for( idx = 0; names[ idx ] != NULL; ++idx ) {
     lua_pushstring( L, names[ idx ] );
-#if LUA_VERSION_NUM < 502
-    lua_pushnumber( L, (lua_Number)values[ idx ] );
-#else
+#if LUA_VERSION_NUM == 502
     lua_pushunsigned( L, values[ idx ] );
+#else
+    lua_pushnumber( L, (lua_Number)values[ idx ] );
 #endif
     lua_pushvalue( L, -1 );
     lua_pushvalue( L, -3 );
@@ -447,20 +447,20 @@ MOON_API void moon_pushoption( lua_State* L, unsigned val,
     }
   } else {
     lookupindex = moon_absindex( L, lookupindex );
-#if LUA_VERSION_NUM < 502
-    lua_pushnumber( L, (lua_Number)val );
-#else
+#if LUA_VERSION_NUM == 502
     lua_pushunsigned( L, val );
+#else
+    lua_pushnumber( L, (lua_Number)val );
 #endif
     lua_rawget( L, lookupindex );
     if( !lua_isnil( L, -1 ) )
       return;
     lua_pop( L, 1 );
   }
-#if LUA_VERSION_NUM < 502
-  lua_pushnumber( L, (lua_Number)val );
-#else
+#if LUA_VERSION_NUM == 502
   lua_pushunsigned( L, val );
+#else
+  lua_pushnumber( L, (lua_Number)val );
 #endif
 }
 
@@ -486,10 +486,10 @@ MOON_API unsigned moon_checkoption( lua_State* L, int idx,
     }
     lua_rawget( L, lookupindex );
     if( lua_type( L, -1 ) == LUA_TNUMBER ) {
-#if LUA_VERSION_NUM < 502
-      val = (unsigned)lua_tonumber( L, -1 );
-#else
+#if LUA_VERSION_NUM == 502
       val = lua_tounsigned( L, -1 );
+#else
+      val = (unsigned)lua_tonumber( L, -1 );
 #endif
       lua_pop( L, 1 );
     } else
