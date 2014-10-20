@@ -41,34 +41,22 @@ static void MOON_FLAG_NEW( lua_State* L, MOON_FLAG_TYPE v ) {
 #ifdef MOON_FLAG_USECACHE
   luaL_checkstack( L, 5, "not enough stack space available" );
   luaL_getmetatable( L, MOON_FLAG_NAME );
-  if( lua_istable( L, -1 ) ) {
-    moon_light2full( L, -1 );
-    lua_pushnumber( L, (lua_Number)v );
-    lua_rawget( L, -2 );
-    if( lua_isnil( L, -1 ) ) {
-      MOON_FLAG_TYPE* f = NULL;
-      lua_pop( L, 1 );
-      f = moon_newobject( L, MOON_FLAG_NAME, 0 );
-      *f = v;
-      lua_pushnumber( L, (lua_Number)v );
-      lua_pushvalue( L, -2 );
-      lua_rawset( L, -4 );
-    }
-    lua_replace( L, -3 );
+  if( !lua_istable( L, -1 ) )
+    luaL_error( L, "no metatable for type '%s' defined", MOON_FLAG_NAME );
+  moon_light2full( L, -1 );
+  lua_pushnumber( L, (lua_Number)v );
+  lua_rawget( L, -2 );
+  if( lua_isnil( L, -1 ) ) {
     lua_pop( L, 1 );
-  } else {
 #endif
-  MOON_FLAG_TYPE* f = moon_newobject( L, MOON_FLAG_NAME, 0 );
-  *f = v;
+    *(MOON_FLAG_TYPE*)moon_newobject( L, MOON_FLAG_NAME, 0 ) = v;
 #ifdef MOON_FLAG_USECACHE
-    lua_replace( L, -2 );
-    lua_getmetatable( L, -1 );
-    moon_light2full( L, -1 );
     lua_pushnumber( L, (lua_Number)v );
-    lua_pushvalue( L, -4 );
-    lua_rawset( L, -3 );
-    lua_pop( L, 2 );
+    lua_pushvalue( L, -2 );
+    lua_rawset( L, -4 );
   }
+  lua_replace( L, -3 );
+  lua_pop( L, 1 );
 #endif
 }
 
