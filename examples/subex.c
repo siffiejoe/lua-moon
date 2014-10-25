@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include "moon.h"
@@ -18,7 +19,7 @@ typedef struct {
 
 
 #define ASSIGN_INT( L, _lhs, _idx ) \
-  _lhs = luaL_checkint( L, _idx )
+  _lhs = (int)moon_checkint( L, _idx, INT_MIN, INT_MAX )
 #define MOON_SUB_NAME    "EmbeddedType"
 #define MOON_SUB_TYPE    embedded
 #define MOON_SUB_SUFFIX  emb
@@ -63,7 +64,7 @@ static int subex_newindex( lua_State* L ) {
   size_t len = 0;
   char const* k = luaL_checklstring( L, 2, &len );
   if( len == 1 && k[ 0 ] == 'z' )
-    ud->z = luaL_checkint( L, 3 );
+    ud->z = (int)moon_checkint( L, 3, INT_MIN, INT_MAX );
   /* we usually don't allow setting sub-structs, but we
    * could ... */
   else

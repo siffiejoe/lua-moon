@@ -314,7 +314,7 @@ values (using separate caches per enum type), etc.
     /*  [ -0, +1, e ]  */
     void moon_lookuptable( lua_State* L,
                            char const* const names[],
-                           unsigned const values[] );
+                           lua_Integer const values[] );
 
 Creates and pushes to the stack a Lua table that maps all given
 `names` (up to a terminating `NULL`) to the corresponding value in the
@@ -327,8 +327,8 @@ the `moon_pushoption`/`moon_checkoption` APIs or in combination with a
 
     /*  [ -0, +1, e ]  */
     void moon_pushoption( lua_State* L,
-                          unsigned val,
-                          unsigned const values[],
+                          lua_Integer val,
+                          lua_Integer const values[],
                           char const* const names[],
                           int lookuptable );
 
@@ -346,18 +346,44 @@ could be found, the enum value is pushed as a number.
 ####                      `moon_checkoption`                      ####
 
     /*  [ -0, +0, v ]  */
-    unsigned moon_checkoption( lua_State* L,
-                               int idx,
-                               char const* def,
-                               char const* const names[],
-                               unsigned const values[],
-                               int lookuptable );
+    lua_Integer moon_checkoption( lua_State* L,
+                                  int idx,
+                                  char const* def,
+                                  char const* const names[],
+                                  lua_Integer const values[],
+                                  int lookuptable );
 
 
 This function works similar to `luaL_checkoption`, but it returns the
 enum value taken from the `values` array directly instead of an array
 index. If `lookuptable` is non-zero, the table at this index is used
 instead of the `names` and `values` arrays.
+
+
+####                        `moon_checkint`                       ####
+
+    /*  [ -0, +0, v ]  */
+    lua_Integer moon_checkint( lua_State* L,
+                               int idx,
+                               lua_Integer min,
+                               lua_Integer max );
+
+This function works like `luaL_checkinteger` but additionally ensures
+that the given value is in the range [`min`, `max`], or else an error
+is thrown.
+
+
+####                         `moon_optint`                        ####
+
+    /*  [ -0, +0, v ]  */
+    lua_Integer moon_optint( lua_State* L,
+                             int idx,
+                             lua_Integer min,
+                             lua_Integer max,
+                             lua_Integer def );
+
+Similar to `moon_checkint` but uses the default value `def` if the
+value at the given stack position is `nil` or `none`.
 
 
 ####                      `moon_stack_assert`                     ####

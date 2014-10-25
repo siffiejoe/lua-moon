@@ -66,6 +66,8 @@
 #define moon_lookuptable    MOON_CONCAT( MOON_PREFIX, _lookuptable )
 #define moon_pushoption     MOON_CONCAT( MOON_PREFIX, _pushoption )
 #define moon_checkoption    MOON_CONCAT( MOON_PREFIX, _checkoption )
+#define moon_checkint       MOON_CONCAT( MOON_PREFIX, _checkint )
+#define moon_optint         MOON_CONCAT( MOON_PREFIX, _optint )
 
 
 /* the type used to collect all necessary information to define an
@@ -110,16 +112,22 @@ MOON_API void moon_setuvfield( lua_State* L, int i, char const* key );
 MOON_API void moon_light2full( lua_State* L, int index );
 MOON_API void moon_lookuptable( lua_State* L,
                                 char const* const names[],
-                                unsigned const values[] );
-MOON_API void moon_pushoption( lua_State* L, unsigned val,
-                               unsigned const values[],
+                                lua_Integer const values[] );
+MOON_API void moon_pushoption( lua_State* L, lua_Integer val,
+                               lua_Integer const values[],
                                char const* const names[],
                                int lookupindex );
-MOON_API unsigned moon_checkoption( lua_State* L, int idx,
-                                    char const* def,
-                                    char const* const names[],
-                                    unsigned const values[],
-                                    int lookupindex );
+MOON_API lua_Integer moon_checkoption( lua_State* L, int idx,
+                                       char const* def,
+                                       char const* const names[],
+                                       lua_Integer const values[],
+                                       int lookupindex );
+MOON_API lua_Integer moon_checkint( lua_State* L, int idx,
+                                    lua_Integer low,
+                                    lua_Integer high );
+MOON_API lua_Integer moon_optint( lua_State* L, int idx,
+                                  lua_Integer low, lua_Integer high,
+                                  lua_Integer def );
 
 
 /* some debugging macros */

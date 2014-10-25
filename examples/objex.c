@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include "moon.h"
@@ -46,7 +47,7 @@ static int objex_newindex( lua_State* L ) {
           (int)lua_tonumber( L, lua_upvalueindex( 1 ) ),
           (int)lua_tonumber( L, lua_upvalueindex( 2 ) ) );
   if( 0 == strcmp( s, "i" ) )
-    ud->i = luaL_checkint( L, 3 );
+    ud->i = (int)moon_checkint( L, 3, INT_MIN, INT_MAX );
   return 0;
 }
 

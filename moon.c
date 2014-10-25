@@ -413,17 +413,13 @@ MOON_API void moon_light2full( lua_State* L, int index ) {
 
 MOON_API void moon_lookuptable( lua_State* L,
                                 char const* const names[],
-                                unsigned const values[] ) {
-  unsigned idx = 0;
+                                lua_Integer const values[] ) {
+  size_t idx = 0;
   luaL_checkstack( L, 5, "not enough stack space available" );
   lua_newtable( L );
   for( idx = 0; names[ idx ] != NULL; ++idx ) {
     lua_pushstring( L, names[ idx ] );
-#if LUA_VERSION_NUM == 502
-    lua_pushunsigned( L, values[ idx ] );
-#else
-    lua_pushnumber( L, (lua_Number)values[ idx ] );
-#endif
+    lua_pushinteger( L, values[ idx ] );
     lua_pushvalue( L, -1 );
     lua_pushvalue( L, -3 );
     lua_rawset( L, -5 );
@@ -432,12 +428,12 @@ MOON_API void moon_lookuptable( lua_State* L,
 }
 
 
-MOON_API void moon_pushoption( lua_State* L, unsigned val,
-                               unsigned const values[],
+MOON_API void moon_pushoption( lua_State* L, lua_Integer val,
+                               lua_Integer const values[],
                                char const* const names[],
                                int lookupindex ) {
   if( lookupindex == 0 ) {
-    unsigned idx = 0;
+    size_t idx = 0;
     while( names[ idx ] != NULL ) {
       if( values[ idx ] == val ) {
         lua_pushstring( L, names[ idx ] );
@@ -447,34 +443,26 @@ MOON_API void moon_pushoption( lua_State* L, unsigned val,
     }
   } else {
     lookupindex = moon_absindex( L, lookupindex );
-#if LUA_VERSION_NUM == 502
-    lua_pushunsigned( L, val );
-#else
-    lua_pushnumber( L, (lua_Number)val );
-#endif
+    lua_pushinteger( L, val );
     lua_rawget( L, lookupindex );
     if( !lua_isnil( L, -1 ) )
       return;
     lua_pop( L, 1 );
   }
-#if LUA_VERSION_NUM == 502
-  lua_pushunsigned( L, val );
-#else
-  lua_pushnumber( L, (lua_Number)val );
-#endif
+  lua_pushinteger( L, val );
 }
 
 
-MOON_API unsigned moon_checkoption( lua_State* L, int idx,
-                                    char const* def,
-                                    char const* const names[],
-                                    unsigned const values[],
-                                    int lookupindex ) {
+MOON_API lua_Integer moon_checkoption( lua_State* L, int idx,
+                                       char const* def,
+                                       char const* const names[],
+                                       lua_Integer const values[],
+                                       int lookupindex ) {
   if( lookupindex == 0 ) {
     int i = luaL_checkoption( L, idx, def, names );
     return values[ i ];
   } else {
-    unsigned val = 0;
+    lua_Integer val = 0;
     char const* name = def;
     lookupindex = moon_absindex( L, lookupindex );
     idx = moon_absindex( L, idx );
@@ -486,17 +474,40 @@ MOON_API unsigned moon_checkoption( lua_State* L, int idx,
     }
     lua_rawget( L, lookupindex );
     if( lua_type( L, -1 ) == LUA_TNUMBER ) {
-#if LUA_VERSION_NUM == 502
-      val = lua_tounsigned( L, -1 );
-#else
-      val = (unsigned)lua_tonumber( L, -1 );
-#endif
+      val = lua_tointeger( L, -1 );
       lua_pop( L, 1 );
     } else
       luaL_argerror( L, idx, lua_pushfstring( L,
                      "invalid option '%s'", name ) );
     return val;
   }
+}
+
+
+MOON_API lua_Integer moon_checkint( lua_State* L, int idx,
+                                    lua_Integer low,
+                                    lua_Integer high ) {
+  lua_Integer v = luaL_checkinteger( L, idx );
+  if( !(v >= low && v <= high)) {
+#if LUA_VERSION_NUM >= 503
+    char const* msg = lua_pushfstring( L, "value out of range [%L,%L]",
+                                       low, high );
+#else
+    char const* msg = lua_pushfstring( L, "value out of range [%f,%f]",
+                                       (lua_Number)low, (lua_Number)high );
+#endif
+    luaL_argerror( L, idx, msg );
+  }
+  return v;
+}
+
+
+MOON_API lua_Integer moon_optint( lua_State* L, int idx,
+                                  lua_Integer low, lua_Integer high,
+                                  lua_Integer def ) {
+  if( !lua_isnoneornil( L, idx ) )
+    def = moon_checkint( L, idx, low, high );
+  return def;
 }
 
 
