@@ -7,6 +7,7 @@
 
 #include <stddef.h>
 #include <string.h>
+#include <limits.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include "moon.h"
@@ -491,12 +492,17 @@ MOON_API lua_Integer moon_checkint( lua_State* L, int idx,
   int valid = (high < low) ? (low <= v || v <= high)
                            : (low <= v && v <= high);
   if( !valid ) {
+    char const* msg = NULL;
 #if LUA_VERSION_NUM >= 503
-    char const* msg = lua_pushfstring( L, "value out of range [%L,%L]",
-                                       low, high );
+    msg = lua_pushfstring( L, "value out of range [%L,%L]", low, high );
 #else
-    char const* msg = lua_pushfstring( L, "value out of range [%f,%f]",
-                                       (lua_Number)low, (lua_Number)high );
+    if( low >= INT_MIN && low <= INT_MAX &&
+        high >= INT_MIN && high <= INT_MAX )
+      msg = lua_pushfstring( L, "value out of range [%d,%d]",
+                             (int)low, (int)high );
+    else
+      msg = lua_pushfstring( L, "value out of range [%f,%f]",
+                             (lua_Number)low, (lua_Number)high );
 #endif
     luaL_argerror( L, idx, msg );
   }
