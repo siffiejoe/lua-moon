@@ -494,7 +494,7 @@ MOON_API lua_Integer moon_checkint( lua_State* L, int idx,
   if( !valid ) {
     char const* msg = NULL;
 #if LUA_VERSION_NUM >= 503
-    msg = lua_pushfstring( L, "value out of range [%L,%L]", low, high );
+    msg = lua_pushfstring( L, "value out of range [%I,%I]", low, high );
 #else
     if( low >= INT_MIN && low <= INT_MAX &&
         high >= INT_MIN && high <= INT_MAX )
