@@ -171,7 +171,7 @@ lookup a key in the methods table, and if unsuccessful then calls the
 original `index` function. If both are `NULL`, `nil` is pushed to the
 stack. If `nup` is non-zero, the given number of upvalues is popped
 from the top of the stack and made available to _all_ registered
-functions. (In case `input` _and_ `methods` are not `NULL`, the
+functions. (In case `index` _and_ `methods` are not `NULL`, the
 `index` function receives two additional upvalues at indices 1 and 2.)
 This function is used in the implementation of `moon_defobject`, but
 maybe it is useful to you independently.
