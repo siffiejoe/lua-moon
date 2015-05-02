@@ -526,7 +526,7 @@ MOON_API void* moon_checkarray( lua_State* L, int idx,
   char const* msg = "invalid array element";
   size_t len = 0;
   size_t i = 1;
-  luaL_checkstack( L, 2, "not enough stack space available" );
+  luaL_checkstack( L, 3, "not enough stack space available" );
   idx = moon_absindex( L, idx );
   if( lua_istable( L, idx ) ) {
     int top;
