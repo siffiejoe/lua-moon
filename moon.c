@@ -519,6 +519,43 @@ MOON_API lua_Integer moon_optint( lua_State* L, int idx,
 }
 
 
+MOON_API void* moon_checkarray( lua_State* L, int idx,
+                                void* buffer, size_t* nelems, size_t esize,
+                                int (*assignfn)(lua_State*, int i, void*) ) {
+  char const* msg = "invalid array element";
+  size_t len = 0;
+  size_t i = 1;
+  luaL_checkstack( L, 2, "not enough stack space available" );
+  idx = moon_absindex( L, idx );
+  if( lua_istable( L, idx ) ) {
+    int top;
+    len = moon_rawlen( L, idx );
+    if( !buffer || len > *nelems )
+      buffer = lua_newuserdata( L, len*esize );
+    top = lua_gettop( L );
+    for( i = 1; i <= len; ++i ) {
+      lua_rawgeti( L, idx, i );
+      if( !assignfn( L, top+1, (char*)buffer+(i-1)*esize ) ) {
+        msg = lua_pushfstring( L, "array element no %d invalid", (int)i );
+        luaL_argerror( L, idx, msg );
+      }
+      lua_settop( L, top );
+    }
+  } else {
+    int top = lua_gettop( L );
+    if( top >= idx )
+      len = top - idx + 1;
+    if( !buffer || len > *nelems )
+      buffer = lua_newuserdata( L, len*esize );
+    for( i = 0; i < len; ++i )
+      if( !assignfn( L, idx+i, (char*)buffer+i*esize ) )
+        luaL_argerror( L, idx+i, msg );
+  }
+  *nelems = len;
+  return buffer;
+}
+
+
 #ifndef NDEBUG
 #include <stdio.h>
 #include <ctype.h>

@@ -68,6 +68,7 @@
 #define moon_checkoption    MOON_CONCAT( MOON_PREFIX, _checkoption )
 #define moon_checkint       MOON_CONCAT( MOON_PREFIX, _checkint )
 #define moon_optint         MOON_CONCAT( MOON_PREFIX, _optint )
+#define moon_checkarray     MOON_CONCAT( MOON_PREFIX, _checkarray )
 
 
 /* the type used to collect all necessary information to define an
@@ -128,6 +129,9 @@ MOON_API lua_Integer moon_checkint( lua_State* L, int idx,
 MOON_API lua_Integer moon_optint( lua_State* L, int idx,
                                   lua_Integer low, lua_Integer high,
                                   lua_Integer def );
+MOON_API void* moon_checkarray( lua_State* L, int idx,
+                                void* buffer, size_t* nelems, size_t esize,
+                                int (*assignfn)(lua_State*, int i, void*) );
 
 
 /* some debugging macros */

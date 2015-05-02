@@ -4,6 +4,7 @@ local objex = require( "objex" )
 local subex = require( "subex" )
 local flgex = require( "flgex" )
 local finex = require( "finex" )
+local arrex = require( "arrex" )
 
 
 print( _VERSION )
@@ -70,5 +71,16 @@ do
   end
   collectgarbage()
   print( "objA should have been finalized before *all* objB instances!" )
+  print( ("="):rep( 70 ) )
+end
+
+do
+  print( "[ arrex test ]" )
+  arrex.array( { 1, 2, 3 } )
+  arrex.array( { 1, 2, 3, 4, 5, 6 } )
+  print( pcall( arrex.array, { 1, 2, 3, "x", 5 } ) )
+  arrex.array( 1, 2, 3 )
+  arrex.array( 1, 2, 3, 4, 5, 6 )
+  print( pcall( arrex.array, 1, 2, 3, "x", 5 ) )
 end
 
