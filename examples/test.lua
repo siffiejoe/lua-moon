@@ -76,11 +76,12 @@ end
 
 do
   print( "[ arrex test ]" )
-  arrex.array( { 1, 2, 3 } )
-  arrex.array( { 1, 2, 3, 4, 5, 6 } )
-  print( pcall( arrex.array, { 1, 2, 3, "x", 5 } ) )
-  arrex.array( 1, 2, 3 )
-  arrex.array( 1, 2, 3, 4, 5, 6 )
-  print( pcall( arrex.array, 1, 2, 3, "x", 5 ) )
+  arrex.array( { 1, 2, 3 }, "xxx" )
+  arrex.array( { 1, 2, 3, 4, 5, 6 }, "xxx" )
+  print( pcall( arrex.array, { 1, 2, 3, "x", 5 }, "xxx" ) )
+  arrex.array( 1, 2, 3, "xxx" )
+  arrex.array( 1, 2, 3, 4, 5, 6, "xxx" )
+  arrex.array( "xxx" )
+  print( pcall( arrex.array, 1, 2, 3, "x", 5, "xxx" ) )
 end
 

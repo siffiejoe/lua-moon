@@ -521,7 +521,8 @@ MOON_API lua_Integer moon_optint( lua_State* L, int idx,
 
 MOON_API void* moon_checkarray( lua_State* L, int idx,
                                 void* buffer, size_t* nelems, size_t esize,
-                                int (*assignfn)(lua_State*, int i, void*) ) {
+                                int (*assignfn)(lua_State*, int i, void*),
+                                int extra ) {
   char const* msg = "invalid array element";
   size_t len = 0;
   size_t i = 1;
@@ -543,8 +544,8 @@ MOON_API void* moon_checkarray( lua_State* L, int idx,
     }
   } else {
     int top = lua_gettop( L );
-    if( top >= idx )
-      len = top - idx + 1;
+    if( top >= idx + extra )
+      len = top - idx - extra + 1;
     if( !buffer || len > *nelems )
       buffer = lua_newuserdata( L, len*esize );
     for( i = 0; i < len; ++i )

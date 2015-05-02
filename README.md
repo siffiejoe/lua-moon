@@ -394,23 +394,25 @@ value at the given stack position is `nil` or `none`.
                            void* buffer,
                            size_t* nelems,
                            size_t esize,
-                           int (*fn)(lua_State*, int, void*) );
+                           int (*fn)(lua_State*, int, void*),
+                           int extra );
 
 This functions converts a Lua table at the given index `idx` into a
 contiguous C array. If the value at `idx` is not a table, all
-remaining arguments starting from that position are used as array
-elements. You can supply an optional `buffer` to be used for the C
-array. If the `buffer` is `NULL` or the length of the buffer (which
-must be in the variable pointed to by `nelems`) is too small, a
-userdata buffer is allocated to hold the C array. The function pointer
-`fn` is called to handle the conversion/assignment of individual array
-elements from the given Lua stack position to the given memory
-location. A true return value signals success, a false value indicates
-a conversion error (in which case `moon_checkarray` raises an error).
-If all elements are converted/assigned successfully, `moon_checkarray`
-returns a pointer to the first element of the resulting C array, and
-the variable pointed to by `nelems` is updated to hold the actual
-number of array elements.
+remaining arguments (except the last `extra`) starting from that
+position are used as array elements. You can supply an optional
+`buffer` to be used for the C array. If the `buffer` is `NULL` or the
+length of the buffer (which must be in the variable pointed to by
+`nelems`) is too small, a userdata buffer is allocated to hold the C
+array. The function pointer `fn` is called to handle the
+conversion/assignment of individual array elements from the given Lua
+stack position to the given memory location. A true return value
+signals success, a false value indicates a conversion error (in which
+case `moon_checkarray` raises an error). If all elements are
+converted/assigned successfully, `moon_checkarray` returns a pointer
+to the first element of the resulting C array, and the variable
+pointed to by `nelems` is updated to hold the actual number of array
+elements.
 
 
 ####                      `moon_stack_assert`                     ####

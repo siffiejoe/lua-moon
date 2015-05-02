@@ -131,7 +131,8 @@ MOON_API lua_Integer moon_optint( lua_State* L, int idx,
                                   lua_Integer def );
 MOON_API void* moon_checkarray( lua_State* L, int idx,
                                 void* buffer, size_t* nelems, size_t esize,
-                                int (*assignfn)(lua_State*, int i, void*) );
+                                int (*assignfn)(lua_State*, int i, void*),
+                                int extra );
 
 
 /* some debugging macros */

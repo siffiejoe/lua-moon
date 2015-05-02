@@ -15,11 +15,19 @@ static int assign_double( lua_State* L, int idx, void* ptr ) {
 static int get_number_array( lua_State* L ) {
   lua_Number buffer[ 5 ];
   size_t n = sizeof( buffer )/sizeof( *buffer );
-  lua_Number* ptr = moon_checkarray( L, 1, buffer, &n,
-                                     sizeof( lua_Number ), assign_double );
+  lua_Number* ptr = NULL;
+  char const* s = NULL;
   size_t i = 0;
-  printf( "static buffer: %p, array: %p, nelems: %zu\n",
-          (void*)buffer, (void*)ptr, n );
+  if( lua_istable( L, 1 ) ) {
+    s = luaL_checkstring( L, 2 );
+  } else {
+    int top = lua_gettop( L );
+    s = luaL_checkstring( L, top > 0 ? top : 1 );
+  }
+  ptr = moon_checkarray( L, 1, buffer, &n, sizeof( lua_Number ),
+                         assign_double, 1 );
+  printf( "static buffer: %p, array: %p, nelems: %zu, last: %s\n",
+          (void*)buffer, (void*)ptr, n, s );
   for( i = 0; i < n; ++i ) {
     printf( "\t%02zu: %g\n", i, ptr[ i ] );
   }
