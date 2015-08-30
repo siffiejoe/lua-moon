@@ -65,20 +65,17 @@ MOON_API void moon_defobject( lua_State* L,
   if( t->metamethods != NULL ) {
     luaL_Reg const* l = t->metamethods;
     int i = 0;
-    for( i = 0; i < nups; ++i )
-      lua_pushvalue( L, -nups-1 );
     for( ; l->name != NULL; ++l ) {
       if( 0 == strcmp( l->name, MOON_PRIVATE_KEY ) ) {
         luaL_error( L, "'%s' is reserved", MOON_PRIVATE_KEY );
       } else if( 0 != strcmp( l->name, "__index" ) ) {
         for( i = 0; i < nups; ++i )
-          lua_pushvalue( L, -nups );
+          lua_pushvalue( L, -nups-1 );
         lua_pushcclosure( L, l->func, nups );
-        lua_setfield( L, -nups-2, l->name );
+        lua_setfield( L, -2, l->name );
       } else /* handle __index later */
         index = l->func;
     }
-    lua_pop( L, nups );
   }
   if( t->methods != NULL || index ) {
     int i = 0;
@@ -633,8 +630,14 @@ MOON_API void moon_stack_( lua_State* L, char const* file, int line,
                                                          : "false" );
         break;
       case LUA_TNUMBER:
-        fprintf( stderr, "(" LUA_NUMBER_FMT ")\n",
-                 lua_tonumber( L, i ) );
+#if LUA_VERSION_NUM >= 503
+        if( lua_isinteger( L, i ) )
+          fprintf( stderr, "(" LUA_INTEGER_FMT ")\n",
+                   lua_tointeger( L, i ) );
+        else
+#endif
+          fprintf( stderr, "(" LUA_NUMBER_FMT ")\n",
+                   lua_tonumber( L, i ) );
         break;
       case LUA_TSTRING: {
           char const* str = lua_tostring( L, i );
