@@ -24,13 +24,10 @@ x() {
 }
 
 x gcc -Wall -Wextra -I"$INC" -I.. -fpic -shared -Os -o objex.so objex.c
-x gcc -Wall -Wextra -I"$INC" -I.. -fpic -shared -Os -o subex.so subex.c
 x gcc -Wall -Wextra -I"$INC" -I.. -fpic -shared -Os -o flgex.so flgex.c
-x gcc -Wall -Wextra -I"$INC" -I.. -fpic -shared -Os -o finex.so finex.c
-x gcc -Wall -Wextra -I"$INC" -I.. -fpic -shared -Os -o arrex.so arrex.c
 x gcc -Wall -Wextra -Os -o dlfixex dlfixex.c -ldl
 x gcc -Wall -Wextra -I"$INC" -I.. -fpic -shared -Os -o plugin.so plugin.c $LIB -lm -ldl
 
 exit 0
 
-rm -f objex.so subex.so flgex.so finex.so arrex.so dlfixex plugin.so
+rm -f objex.so flgex.so dlfixex plugin.so

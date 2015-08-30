@@ -23,10 +23,10 @@ compile and link `moon.c` using the same define. This approach will
 change the common `moon_` prefix to your custom prefix behind the
 scenes to avoid linker errors in case another library also links to
 `moon.c`.
-The header files `moon_flag.h` and `moon_sub.h` can be included
-whenever needed, but they depend on the functions defined in `moon.c`.
-The `moon_dlfix.h` header is completely independent, but relies on
-some platform specific functions.
+The header file `moon_flag.h` can be included whenever needed, but it
+depends on the functions defined in `moon.c`. The `moon_dlfix.h`
+header is completely independent, but relies on some platform specific
+functions.
 
 
 ##                             Reference                            ##
@@ -37,6 +37,13 @@ This section lists all provided macros/functions.
 ###                        `moon.h`/`moon.c`                       ###
 
 The main part of the moon toolkit.
+
+
+####          `MOON_EXPORT`, `MOON_IMPORT`, `MOON_LOCAL`          ####
+
+    #define MOON_EXPORT
+    #define MOON_IMPORT
+    #define MOON_LOCAL
 
 
 ####                         `MOON_CONCAT`                        ####
@@ -61,7 +68,6 @@ macro substitution.
     typedef struct {
       char const*       metatable_name;
       size_t            userdata_size;
-      void (*initializer)( void* p );
       luaL_Reg const*   metamethods;
       luaL_Reg const*   methods;
     } moon_object_type;
@@ -69,15 +75,10 @@ macro substitution.
 A struct for collecting all necessary information to define an object
 type (using `moon_defobject`).
 `metatable_name` is used to identify this object type (e.g. for
-`moon_checkudata` and `moon_newobject`).
+`moon_checkobject`, or `moon_newobject`).
 `userdata_size` is passed to `lua_newuserdata` when constructing such
-an object.
-The `initializer` is called with the result of `lua_newuserdata`
-_before_ the metatable is set. Use this if you want to signal to your
-`__gc` metamethod that the object is not yet initialized for the case
-an error happens between setting the metatable and successful
-initialization. If you don't have a `__gc` metamethod, you usually can
-leave it as a `NULL` pointer.
+an object. If it is zero, you may only create pointer objects (via
+`moon_newpointer` or `moon_newfield`).
 `metamethods` and `methods` are the usual Lua function registration
 arrays. The `metamethods` are added directly to the metatable, the
 `methods` are put in a table in the `__index` field.  Both can be
@@ -87,23 +88,33 @@ looks in the methods table and then calls the original `__index`
 function if necessary.
 
 
-####                        `moon_lua_reg`                        ####
+####                     `moon_object_header`                     ####
 
     typedef struct {
-      char const*   require_name;
-      char const*   error_name;
-      char const*   code;
-      size_t        code_length;
-    } moon_lua_reg;
+      unsigned char   flags;
+      unsigned char   cleanup_offset;
+      unsigned char   vcheck_offset;
+      unsigned char   object_offset;
+    } moon_object_header;
 
-This struct is used in a similar way as `luaL_Reg` but for registering
-embedded Lua modules (using `moon_preload_lua`).
-`require_name` is the module name that should be passed to the
-`require` function in order to load this module.
-`error_name` is used in error messages. If your Lua code came from an
-external file, `error_name` should start with an `@` as usual.
-`code` is the actual Lua code (possibly precompiled) as a C array. The
-length in bytes of this C array is given as the `code_length` field.
+Common data structure shared by all userdata objects created via the
+moon toolkit. The object may have optional fields following the memory
+of this header structure, stored at the given offsets. The `flags`
+field is a bit mask describing the details of the object. A pointer to
+this header can be obtained by using plain `lua_touserdata` on a moon
+object.
+
+
+####       `MOON_OBJECT_IS_VALID`, `MOON_OBJECT_IS_POINTER`       ####
+
+    #define MOON_OBJECT_IS_VALID    0x01
+    #define MOON_OBJECT_IS_POINTER  0x02
+
+Values stored in the `flags` field of the `moon_object_header`
+structure. The only value interesting for users of the library is the
+`MOON_OBJECT_IS_VALID` flag which is reset automatically by the
+`moon_killobject` function to signal that the destructor has already
+run.
 
 
 ####                       `moon_defobject`                       ####
@@ -122,7 +133,9 @@ non-zero, it pops those upvalues from the current Lua stack top and
 makes them available to all registered functions (metamethods _and_
 methods). In case the object type has an `__index` function _and_
 methods, the original `__index` function will be called with two extra
-upvalues at index 1 and 2, so your own upvalues start at index 3.
+upvalues at index 1 and 2, so your own upvalues start at index 3. A
+suitable `__gc` metamethod and a default `__tostring` metamethod are
+provided by this function.
 
 
 ####                       `moon_newobject`                       ####
@@ -130,234 +143,104 @@ upvalues at index 1 and 2, so your own upvalues start at index 3.
     /*  [ -0, +1, e ]  */
     void* moon_newobject( lua_State* L,
                           char const* metatable_name,
-                          int env_index );
+                          void (*destructor)( void* ) );
 
-This function allocates a userdata, sets a metatable, and (if
-`env_index` is non-zero) also sets a uservalue/environment. It throws
-an error if the `metatable_name` has not been registered via the
-`moon_defobject` function. The new userdata object is pushed to the
-top of the Lua stack.
-
-
-####                     `moon_newobject_ref`                     ####
-
-    /*  [ -0, +1, e ]  */
-    void* moon_newobject_ref( lua_State* L,
-                              char const* metatable_name,
-                              int ref_index );
-
-This function works like the `moon_newobject` function above, but if
-`ref_index` is non-zero, it also creates a new uservalue table and
-puts the referenced value in it. Use this if your new object depends
-on the lifetime of another object (located at `ref_index`) and should
-not outlive it.
+This function allocates a userdata, sets a metatable, and stores the
+cleanup function for later use by the `__gc` metamethod or the
+`moon_killobject` function. It throws an error if the `metatable_name`
+has not been registered via the `moon_defobject` function. The new
+userdata object is pushed to the top of the Lua stack, and a pointer
+to the payload (*not* the `moon_object_header` structure) is returned.
 
 
-####                       `moon_propindex`                       ####
-
-    /*  [ -nup, +1, e ]  */
-    void moon_propindex( lua_State* L,
-                         luaL_Reg const* methods,
-                         lua_CFunction index,
-                         int nup );
-
-This function is used for creating an `__index` metafield. If `index`
-is `NULL` but `methods` is not, a table containing all the functions
-in `methods` is created and pushed to the top of the stack. If `index`
-is not `NULL`, but `methods` is, the `index` function pointer is
-simply pushed to the top of the stack. In case both are non `NULL`, a
-new C closure is created and pushed to the stack, which first tries to
-lookup a key in the methods table, and if unsuccessful then calls the
-original `index` function. If both are `NULL`, `nil` is pushed to the
-stack. If `nup` is non-zero, the given number of upvalues is popped
-from the top of the stack and made available to _all_ registered
-functions. (In case `index` _and_ `methods` are not `NULL`, the
-`index` function receives two additional upvalues at indices 1 and 2.)
-This function is used in the implementation of `moon_defobject`, but
-maybe it is useful to you independently.
-
-
-####                         `moon_atexit`                        ####
+####                       `moon_newpointer`                      ####
 
     /*  [ -0, +1, e ]  */
-    int* moon_atexit( lua_State* L,
-                      lua_CFunction cleanup );
+    void** moon_newpointer( lua_State* L,
+                            char const* metatable_name,
+                            void (*destructor)( void* ) );
 
-This function puts an integer-sized userdata (initialized to 0) in the
-registry and sets the given `cleanup` function as `__gc` metamethod.
-The userdata is also pushed to the top of the Lua stack, and returned
-as an `int` pointer.
-Use this function if you want to call a cleanup function when the Lua
-state is closed, but only if some initialization succeeded. The usual
-approach is as follows:
-
-1.  Call `moon_atexit` registering your cleanup function.
-2.  Do your initialization.
-3.  If successful, you set the `int` pointer to non-zero, which is
-    almost atomic and can't fail, and pop the userdata.
-4.  When the cleanup function is called, check for a non-zero value
-    before actually cleaning up.
+This function allocates a userdata suitable for storing a pointer,
+sets a metatable, and stores the cleanup function for later use by the
+`__gc` metamethod or the `moon_killobject` function. It is equivalent
+to `moon_newobject` with the difference that the payload is stored as
+a pointer, not inside the userdata memory. The pointer is initialized
+to `NULL` when this function returns, and may be set by assigning to
+the memory location pointed to by the return value.
 
 
-####                       `moon_finalizer`                       ####
-
-    /*  [ -0, +0, e ]  */
-    void moon_finalizer( lua_State* L,
-                         int idx );
-
-This function outsources the `__gc` metamethod of the userdata at
-position `idx` to a newly allocated finalizer which is stored in the
-uservalue/environment table of the original userdata, replacing a
-previously stored finalizer if necessary. Both original userdata and
-finalizer will be collected in the same GC cycle, but since the
-finalizer was created at a later time, it will be finalized *sooner*.
-You are responsible for making sure that the original userdata has a
-uservalue/environment table. You can use this function to modify the
-order in which userdata are collected in the same GC cycle.
-
-
-####                        `moon_resource`                       ####
+####                        `moon_newfield`                       ####
 
     /*  [ -0, +1, e ]  */
-    void** moon_resource( lua_State* L,
-                          void (*releasef)( void* ) );
-
-Allocates a userdata with enough space to store a `void` pointer and
-registers a finalizer to call `releasef` unless the pointer is `NULL`
-(the default). Use this to make sure that a resource external to Lua
-is always cleaned up, even in case an unexpected error is thrown. The
-userdata is pushed onto the stack, so it won't be collected before the
-function returns, but you can use `moon_release` to free the resource
-before that.
-
-
-####                        `moon_release`                        ####
-
-    /*  [ -0, +0, - ]  */
-    void moon_release( void** resource );
-
-Releases a resource allocated via `moon_resource` by calling its
-`releasef` function pointer. The resource is also set to `NULL`, so
-that the garbage collector won't release it a second time.
-
-
-####                       `moon_preload_c`                       ####
-
-    /*  [ -0, +0, e ]  */
-    void moon_preload_c( lua_State* L,
-                         luaL_Reg const* libs );
-
-If you want to preload the loader functions of C modules (e.g. because
-you statically linked them to your executable), you can put them in
-the usual `luaL_Reg` array and pass it to `moon_preload_c` which puts
-all loaders under their given names in the `package.preload` table (or
-its equivalent in the registry). When done you can `require` those C
-modules as usual.
-
-
-####                      `moon_preload_lua`                      ####
-
-    /*  [ -0, +0, e ]  */
-    void moon_preload_lua( lua_State* L,
-                           moon_lua_reg const* libs );
-
-If you want to embed Lua modules into your executable, you usually put
-the Lua source code (or the byte code) in a `char` array. You can then
-call this function to load the code and put the resulting chunk in the
-`package.preload` table. The function takes a properly terminated
-array of `moon_lua_reg` structs, so you can register multiple Lua
-modules at once.
-
-
-####                       `moon_setuvfield`                      ####
-
-    /*  [ -1, +0, e ]  */
-    void moon_setuvfield( lua_State* L,
+    void** moon_newfield( lua_State* L,
+                          char const* metatable_name,
                           int idx,
-                          char const* key );
+                          int (*isvalid)( void* p ),
+                          void* p );
 
-This function pops the value at the top of the stack and stores it
-under `key` in the environment/uservalue table of the object at stack
-position `idx`.
-
-
-####                       `moon_getuvfield`                      ####
-
-    /*  [ -0, +1, e ]  */
-    int moon_getuvfield( lua_State* L,
-                         int idx,
-                         char const* key );
-
-This function works similar to `luaL_getmetafield`, but it looks for
-`key` in the environment/uservalue table of the object at index `idx`,
-and pushes the corresponding value to the top of the stack. If there
-is no uservalue table or no such field, `nil` is pushed instead. The
-return value is the type of the pushed value.
-
-
-####                       `moon_light2full`                      ####
-
-    /*  [ -0, +1, e ]  */
-    void moon_light2full( lua_State* L,
-                          int idx );
-
-This function looks up and pushes a weak-valued table under a private
-key in the table given by index `idx` (often `LUA_REGISTRYINDEX`). If
-the weak-valued table doesn't exist yet, it is created automatically.
-This function is useful to map lightuserdata to full userdata (hence
-the name), but it can also be used to cache full userdata for enum
-values (using separate caches per enum type), etc.
+This function allocates a userdata suitable for storing a pointer, and
+sets a metatable. It is similar to `moon_newpointer`, but it is
+intended for exposing a data structure embedded within another
+userdata (referenced by stack position `idx`). The resulting moon
+object keeps the parent userdata alive by storing a reference in its
+uservalue table. If `idx` is `0`, no uservalue table is set. Setting a
+cleanup function is not possible, because the parent userdata is
+responsible for cleaning up memory and other resources.
+If an `isvalid` function pointer is provided, it is called by the
+`moon_checkobject`/`moon_testobject` functions to check whether the
+object is still valid. This can be used to make sure that a tagged
+union used as parent userdata still has the correct type, or that the
+parent userdata hasn't released any necessary resources prior to
+garbage collection. If the value referenced by `idx` is a moon object
+that also has an `isvalid` check registered, the checks are performed
+in the order from parent object(s) to child object.
 
 
-####                      `moon_lookuptable`                      ####
-
-    /*  [ -0, +1, e ]  */
-    void moon_lookuptable( lua_State* L,
-                           char const* const names[],
-                           lua_Integer const values[] );
-
-Creates and pushes to the stack a Lua table that maps all given
-`names` (up to a terminating `NULL`) to the corresponding value in the
-`values` array, and vice versa. The resulting table can be used for
-the `moon_pushoption`/`moon_checkoption` APIs or in combination with a
-`switch` statement in C.
-
-
-####                       `moon_pushoption`                      ####
-
-    /*  [ -0, +1, e ]  */
-    void moon_pushoption( lua_State* L,
-                          lua_Integer val,
-                          lua_Integer const values[],
-                          char const* const names[],
-                          int lookuptable );
-
-Lua often uses strings of enums or flags (at least if you don't need
-bit operations to combine them somehow), see e.g. `luaL_checkoption`.
-This function does the reverse: It takes an enum value `val` and
-pushes the matching string to the Lua stack. How this matching string
-is obtained depends on the given arguments. If `lookuptable` is
-non-zero, the table at the given index is used to map `val` to a
-string name, otherwise the arrays `values` and `names` (the latter
-must be `NULL`-terminated) are searched for a match. If no string name
-could be found, the enum value is pushed as a number.
-
-
-####                      `moon_checkoption`                      ####
+####                       `moon_killobject`                      ####
 
     /*  [ -0, +0, v ]  */
-    lua_Integer moon_checkoption( lua_State* L,
-                                  int idx,
-                                  char const* def,
-                                  char const* const names[],
-                                  lua_Integer const values[],
-                                  int lookuptable );
+    void moon_killobject( lua_State* L,
+                          int idx );
+
+If the moon object at the given stack index is valid, its cleanup
+function is run, and the object is marked as invalid (to prevent the
+cleanup function from running again). This function can be used to
+reclaim resources before the object becomes unreachable.
 
 
-This function works similar to `luaL_checkoption`, but it returns the
-enum value taken from the `values` array directly instead of an array
-index. If `lookuptable` is non-zero, the table at this index is used
-instead of the `names` and `values` arrays.
+####                      `moon_checkobject`                      ####
+
+    /*  [ -0, +0, v ]  */
+    void* moon_checkobject( lua_State* L,
+                            int idx,
+                            char const* metatable_name );
+
+This function ensures that the value stored at stack index `idx`
+
+1.  is a full userdata
+2.  is a moon object
+3.  has the metatable identified by `metatable_name`
+4.  has the `MOON_OBJECT_IS_VALID` flag set
+5.  all `isvalid` functions return a non-zero value (for objects
+    created via `moon_newfield`)
+6.  contains a non-`NULL` pointer value (for objects created via
+    `moon_newpointer` or `moon_newfield`.
+
+If any of those conditions are false, an error is raised. Otherwise
+this function returns a pointer to the object's memory (meaning the
+objects created via `moon_newpointer` and `moon_newfield` are
+dereferenced once).
+
+
+####                       `moon_testobject`                      ####
+
+    /*  [ -0, +0, v ]  */
+    void* moon_testobject( lua_State* L,
+                           int idx,
+                           char const* metatable_name );
+
+Performs the same checks as `moon_checkobject`, but returns NULL if
+any of those conditions are false instead of raising an error.
 
 
 ####                        `moon_checkint`                       ####
@@ -386,33 +269,66 @@ Similar to `moon_checkint` but uses the default value `def` if the
 value at the given stack position is `nil` or `none`.
 
 
-####                       `moon_checkarray`                      ####
+####                         `moon_atexit`                        ####
 
-    /*  [ -0, +(0|1), e ]  */
-    void* moon_checkarray( lua_State* L,
-                           int idx,
-                           void* buffer,
-                           size_t* nelems,
-                           size_t esize,
-                           int (*fn)(lua_State*, int, void*),
-                           int extra );
+    /*  [ -0, +1, e ]  */
+    int* moon_atexit( lua_State* L,
+                      lua_CFunction cleanup );
 
-This functions converts a Lua table at the given index `idx` into a
-contiguous C array. If the value at `idx` is not a table, all
-remaining arguments (except the last `extra`) starting from that
-position are used as array elements. You can supply an optional
-`buffer` to be used for the C array. If the `buffer` is `NULL` or the
-length of the buffer (which must be in the variable pointed to by
-`nelems`) is too small, a userdata buffer is allocated to hold the C
-array. The function pointer `fn` is called to handle the
-conversion/assignment of individual array elements from the given Lua
-stack position to the given memory location. A true return value
-signals success, a false value indicates a conversion error (in which
-case `moon_checkarray` raises an error). If all elements are
-converted/assigned successfully, `moon_checkarray` returns a pointer
-to the first element of the resulting C array, and the variable
-pointed to by `nelems` is updated to hold the actual number of array
-elements.
+This function puts an integer-sized userdata (initialized to 0) in the
+registry and sets the given `cleanup` function as `__gc` metamethod.
+The userdata is also pushed to the top of the Lua stack, and returned
+as an `int` pointer.
+Use this function if you want to call a cleanup function when the Lua
+state is closed, but only if some initialization succeeded. The usual
+approach is as follows:
+
+1.  Call `moon_atexit` registering your cleanup function.
+2.  Do your initialization.
+3.  If successful, you set the `int` pointer to non-zero, which is
+    almost atomic and can't fail, and pop the userdata.
+4.  When the cleanup function is called, check for a non-zero value
+    before actually cleaning up.
+
+
+####                       `moon_setuvfield`                      ####
+
+    /*  [ -1, +0, e ]  */
+    void moon_setuvfield( lua_State* L,
+                          int idx,
+                          char const* key );
+
+This function pops the value at the top of the stack and stores it
+under `key` in the environment/uservalue table of the object at stack
+position `idx`.
+
+
+####                       `moon_getuvfield`                      ####
+
+    /*  [ -0, +1, e ]  */
+    int moon_getuvfield( lua_State* L,
+                         int idx,
+                         char const* key );
+
+This function works similar to `luaL_getmetafield`, but it looks for
+`key` in the environment/uservalue table of the object at index `idx`,
+and pushes the corresponding value to the top of the stack. If there
+is no uservalue table or no such field, `nil` is pushed instead. The
+return value is the type of the pushed value.
+
+
+####                        `moon_getcache`                       ####
+
+    /*  [ -0, +1, e ]  */
+    void moon_getcache( lua_State* L,
+                        int idx );
+
+This function looks up and pushes a weak-valued table under a private
+key in the table given by index `idx` (often `LUA_REGISTRYINDEX`). If
+the weak-valued table doesn't exist yet, it is created automatically.
+This function is useful to map lightuserdata to full userdata, but it
+can also be used to cache full userdata for enum values (using
+separate caches per enum type), etc.
 
 
 ####                      `moon_stack_assert`                     ####
@@ -439,47 +355,9 @@ This "function" is also implemented as a macro that evaluates to
 contents of the Lua stack in human-readable format to `stderr`.
 
 
-####                       `moon_checkudata`                      ####
-
-Compatibility macro that directly calls `luaL_checkudata` on Lua 5.3,
-but provides slightly better error messages on 5.2 and below.
-
-
-####                       `moon_testudata`                       ####
-
-Compatibilty macro for `luaL_testudata`, but is also available on Lua
-5.1.
-
-
 ####                        `moon_absindex`                       ####
 
 Compatiblity macro for `lua_absindex`, but also available on Lua 5.1.
-
-
-####                        `moon_register`                       ####
-
-Compatibility macro for putting the functions given in a `luaL_Reg`
-array into a Lua table at the top of the stack. It is equivalent to
-`luaL_register` with a `NULL` name, or `luaL_setfuncs` without
-upvalues.
-
-
-####                      `moon_setuservalue`                     ####
-
-Compatibility macro that evaluates to `lua_setuservalue` or
-`lua_setfenv` depending on the Lua version.
-
-
-####                      `moon_getuservalue`                     ####
-
-Compatibility macro that evaluates to `lua_getuservalue` or
-`lua_getfenv` depending on the Lua version.
-
-
-####                         `moon_rawlen`                        ####
-
-Compatibility macro that evaluates to `lua_rawlen` or `lua_objlen`
-depending on the Lua version.
 
 
 ###                          `moon_flag.h`                         ###
@@ -517,8 +395,8 @@ macro file. The following parameters are recognized:
 The following (static) functions will be defined, unless they are
 disabled via one of the parameter macros above:
 
-    /*  [ -nup, +0, e ]  */
-    void moon_flag_def_SUFFIX( lua_State* L, int nup );
+    /*  [ -0, +0, e ]  */
+    void moon_flag_def_SUFFIX( lua_State* L );
     /*  [ -0, +1, e ]  */
     void moon_flag_new_SUFFIX( lua_State* L, TYPE value );
     /*  [ -0, +0, e ]  */
@@ -537,70 +415,6 @@ registers all metamethods. `moon_flag_new_SUFFIX` pushes a userdata
 representing the given value to the top of the Lua stack, while
 `moon_flag_get_SUFFIX` returns the corresponding enum value from a
 userdata on the Lua stack.
-
-
-###                          `moon_sub.h`                          ###
-
-`moon_sub.h` is another macro file that can be used to create userdata
-that represent embedded structs inside another userdata. It can be
-included multiple times, and each time it defines static functions for
-creating and handling sub-userdata. One requirement is that the parent
-userdata has an environment/uservalue set, because it is used to keep
-track of and cache the sub-userdata. The sub-userdata has `__index`,
-`__newindex`, and (in Lua 5.2+) `__pairs` metamethods defined. The
-following parameters can be used to control the definition of the
-sub-userdata:
-
-*   `MOON_SUB_NAME`: A metatable name used for defining a userdata
-    type.
-*   `MOON_SUB_TYPE`: The type of the embedded struct to be wrapped.
-*   `MOON_SUB_SUFFIX`: A suffix to make the defined static functions
-    unique to avoid linking problems.
-*   `MOON_SUB_PARENT`: The type of the embedding (parent) struct.
-*   `MOON_SUB_FIELD`: The field name of the embedded struct inside of
-    the parent struct.
-*   `MOON_SUB_ELEMENTS( macro )`: This is a higher-order macro, which
-    takes another macro as argument and calls it once for every data
-    element of the embedded struct that you want to expose to Lua
-    passing four arguments:
-    1.  the field identifier of the data element
-    2.  a function or macro which takes a `lua_State*` and a value of
-        the same type as the data element, and pushes a suitable Lua
-        value to the top of the stack (e.g. `lua_pushinteger`, etc.,
-        are compatible)
-    3.  a macro which takes a `lua_State*`, an lvalue which
-        represents the data element in the embedded, and an index of
-        a suitable Lua value on the stack, and assigns that value to
-        the data element in the embedded struct
-    4.  a boolean flag, which indicates whether an assignment is
-        allowed at all (the 3rd argument must still evaluate to
-        something syntactically correct, but the result is never
-        executed)
-*   `MOON_SUB_POINTER` (optional): If the parent userdata contains a
-    pointer to the embedding struct instead of the struct itself, you
-    need to define this macro.
-*   `MOON_SUB_NOPAIRS` (optional): Avoid defining iterator function
-    and the `__pairs` metamethod to save memory. This flag is
-    redundant in Lua 5.1.
-
-The following (static) functions will be defined, unless they are
-disabled via one of the parameter macros above:
-
-    /*  [ -nup, +0, e ]  */
-    void moon_sub_def_SUFFIX( lua_State* L, int nup );
-    /*  [ -0, +1, e ]  */
-    void moon_sub_new_SUFFIX( lua_State* L, int idx );
-
-    int moon_sub_index_SUFFIX( lua_State* L );
-    int moon_sub_newindex_SUFFIX( lua_State* L );
-    int moon_sub_next_SUFFIX( lua_State* L ); /* Lua 5.2+ */
-    int moon_sub_pairs_SUFFIX( lua_State* L ); /* Lua 5.2+ */
-
-The last four are metamethods and not supposed to be called from C.
-`moon_sub_def_SUFFIX` defines the new type, creates the metatable and
-registers all metamethods. `moon_sub_new_SUFFIX` pushes a userdata
-representing the embedded struct to the top of the Lua stack. Use it
-in the `__index` metamethod of the parent userdata.
 
 
 ###                         `moon_dlfix.h`                         ###
@@ -645,7 +459,7 @@ Comments and feedback are always welcome.
 `moon` is *copyrighted free software* distributed under the Tiny
 license. The full license text follows:
 
-    moon (c) 2013-2014 Philipp Janda
+    moon (c) 2013-2015 Philipp Janda
 
     You may do anything with this work that copyright law would normally
     restrict, so long as you retain the above notice(s) and this license

@@ -1,43 +1,63 @@
 #!/usr/bin/lua
 
 local objex = require( "objex" )
-local subex = require( "subex" )
 local flgex = require( "flgex" )
-local finex = require( "finex" )
-local arrex = require( "arrex" )
 
 
 print( _VERSION )
-print( ("="):rep( 70 ) )
 do
+  print( ("="):rep( 70 ) )
   print( "[ objex test ]" )
-  local o = objex.new()
-  o:print_me()
-  print( "o.i =", o.i )
-  o.i = 17
-  print( "o.i =", o.i )
-  o:print_me()
-  print( ("="):rep( 70 ) )
+  local a = objex.newA()
+  print( a, a.tag )
+  a:printme()
+  local b = a.b
+  print( a.b, b, a.c, b.f )
+  b:printme()
+  a:switch()
+  print( pcall( b.printme, b ) )
+  print( a, a.tag )
+  a:printme()
+  local c = a.c
+  print( a.c, c, a.b )
+  c:printme()
+  local d = c.d
+  print( c.d, d, d.x, d.y )
+  d:printme()
+  d.x = 5
+  d.y = 10
+  print( d, d.x, d.y )
+  d:printme()
+  a:switch()
+  print( pcall( d.printme, d ) )
+  a:switch()
+  d:printme()
+  c:close()
+  print( pcall( d.printme, d ) )
+  local d2 = objex.getD()
+  print( d2, d2.x, d2.y )
+  d2:printme()
+  local d3 = objex.makeD( 100, 200 )
+  print( d3, d3.x, d3.y )
+  d3:printme()
+  local d4 = objex.newD()
+  print( d4, d4.x, d4.y )
+  d4:printme()
+  local c2 = objex.newC()
+  c2.d.x = 22
+  c2.d.y = 44
+  d2.x = 4
+  d2.y = 8
+  print( c2 )
+  c2:printme()
+  c2.d = d2
+  c2:printme()
 end
+collectgarbage()
+
 
 do
-  print( "[ subex test ]" )
-  local p = subex.new()
-  p:print_me()
-  p.z = 3
-  p.child.y = 2
-  p.child.x = 1
-  print( p.z, p.child, p.child.x, p.child.y )
-  p:print_me()
-  if _VERSION ~= "Lua 5.1" then
-    for k,v in pairs( p.child ) do
-      print( "p.child."..k, v )
-    end
-  end
   print( ("="):rep( 70 ) )
-end
-
-do
   print( "[ flgex test ]" )
   local flags = flgex.NULL + flgex.ONE + flgex.TWO
   print( flags )
@@ -58,30 +78,5 @@ do
   print( "same but not identical:", flags == flgex.THREE, flags, flgex.THREE )
   print( "better error message for mismatched types:" )
   print( pcall( function() local wrong = flgex.ONE + flgex.THREE end ) )
-  print( ("="):rep( 70 ) )
-end
-
-do
-  print( "[ finex test ]" )
-  do
-    local a = finex.newA()
-    a:before( finex.newB() )
-    a:before( finex.newB() )
-    a:before( finex.newB() )
-  end
-  collectgarbage()
-  print( "objA should have been finalized before *all* objB instances!" )
-  print( ("="):rep( 70 ) )
-end
-
-do
-  print( "[ arrex test ]" )
-  arrex.array( { 1, 2, 3 }, "xxx" )
-  arrex.array( { 1, 2, 3, 4, 5, 6 }, "xxx" )
-  print( pcall( arrex.array, { 1, 2, 3, "x", 5 }, "xxx" ) )
-  arrex.array( 1, 2, 3, "xxx" )
-  arrex.array( 1, 2, 3, 4, 5, 6, "xxx" )
-  arrex.array( "xxx" )
-  print( pcall( arrex.array, 1, 2, 3, "x", 5, "xxx" ) )
 end
 

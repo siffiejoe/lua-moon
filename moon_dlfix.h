@@ -1,4 +1,4 @@
-/* Copyright 2013,2014 Philipp Janda <siffiejoe@gmx.net>
+/* Copyright 2013-2015 Philipp Janda <siffiejoe@gmx.net>
  *
  * You may do anything with this work that copyright law would normally
  * restrict, so long as you retain the above notice(s) and this license

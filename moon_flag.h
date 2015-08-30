@@ -1,4 +1,4 @@
-/* Copyright 2013,2014 Philipp Janda <siffiejoe@gmx.net>
+/* Copyright 2013-2015 Philipp Janda <siffiejoe@gmx.net>
  *
  * You may do anything with this work that copyright law would normally
  * restrict, so long as you retain the above notice(s) and this license
@@ -43,7 +43,7 @@ static void MOON_FLAG_NEW( lua_State* L, MOON_FLAG_TYPE v ) {
   luaL_getmetatable( L, MOON_FLAG_NAME );
   if( !lua_istable( L, -1 ) )
     luaL_error( L, "no metatable for type '%s' defined", MOON_FLAG_NAME );
-  moon_light2full( L, -1 );
+  moon_getcache( L, -1 );
   lua_pushnumber( L, (lua_Number)v );
   lua_rawget( L, -2 );
   if( lua_isnil( L, -1 ) ) {
@@ -61,38 +61,38 @@ static void MOON_FLAG_NEW( lua_State* L, MOON_FLAG_TYPE v ) {
 }
 
 static MOON_FLAG_TYPE MOON_FLAG_GET( lua_State* L, int index ) {
-  MOON_FLAG_TYPE* f = moon_checkudata( L, index, MOON_FLAG_NAME );
+  MOON_FLAG_TYPE* f = moon_checkobject( L, index, MOON_FLAG_NAME );
   return *f;
 }
 
 #ifndef MOON_FLAG_NOBITOPS
 static int MOON_FLAG_ADD( lua_State* L ) {
-  MOON_FLAG_TYPE* a = moon_checkudata( L, 1, MOON_FLAG_NAME );
-  MOON_FLAG_TYPE* b = moon_checkudata( L, 2, MOON_FLAG_NAME );
+  MOON_FLAG_TYPE* a = moon_checkobject( L, 1, MOON_FLAG_NAME );
+  MOON_FLAG_TYPE* b = moon_checkobject( L, 2, MOON_FLAG_NAME );
   MOON_FLAG_NEW( L, *a | *b );
   return 1;
 }
 static int MOON_FLAG_SUB( lua_State* L ) {
-  MOON_FLAG_TYPE* a = moon_checkudata( L, 1, MOON_FLAG_NAME );
-  MOON_FLAG_TYPE* b = moon_checkudata( L, 2, MOON_FLAG_NAME );
+  MOON_FLAG_TYPE* a = moon_checkobject( L, 1, MOON_FLAG_NAME );
+  MOON_FLAG_TYPE* b = moon_checkobject( L, 2, MOON_FLAG_NAME );
   MOON_FLAG_NEW( L, *a & ~(*b) );
   return 1;
 }
 static int MOON_FLAG_CALL( lua_State* L ) {
-  MOON_FLAG_TYPE* a = moon_checkudata( L, 1, MOON_FLAG_NAME );
-  MOON_FLAG_TYPE* b = moon_checkudata( L, 2, MOON_FLAG_NAME );
+  MOON_FLAG_TYPE* a = moon_checkobject( L, 1, MOON_FLAG_NAME );
+  MOON_FLAG_TYPE* b = moon_checkobject( L, 2, MOON_FLAG_NAME );
   lua_pushboolean( L, !(~(*a) & (*b)) );
   return 1;
 }
 #if LUA_VERSION_NUM > 502
 static int MOON_FLAG_AND( lua_State* L ) {
-  MOON_FLAG_TYPE* a = moon_checkudata( L, 1, MOON_FLAG_NAME );
-  MOON_FLAG_TYPE* b = moon_checkudata( L, 2, MOON_FLAG_NAME );
+  MOON_FLAG_TYPE* a = moon_checkobject( L, 1, MOON_FLAG_NAME );
+  MOON_FLAG_TYPE* b = moon_checkobject( L, 2, MOON_FLAG_NAME );
   MOON_FLAG_NEW( L, *a & *b );
   return 1;
 }
 static int MOON_FLAG_NOT( lua_State* L ) {
-  MOON_FLAG_TYPE* a = moon_checkudata( L, 1, MOON_FLAG_NAME );
+  MOON_FLAG_TYPE* a = moon_checkobject( L, 1, MOON_FLAG_NAME );
   MOON_FLAG_NEW( L, ~*a );
   return 1;
 }
@@ -101,14 +101,14 @@ static int MOON_FLAG_NOT( lua_State* L ) {
 
 #ifndef MOON_FLAG_NORELOPS
 static int MOON_FLAG_EQ( lua_State* L ) {
-  MOON_FLAG_TYPE* a = moon_checkudata( L, 1, MOON_FLAG_NAME );
-  MOON_FLAG_TYPE* b = moon_checkudata( L, 2, MOON_FLAG_NAME );
+  MOON_FLAG_TYPE* a = moon_checkobject( L, 1, MOON_FLAG_NAME );
+  MOON_FLAG_TYPE* b = moon_checkobject( L, 2, MOON_FLAG_NAME );
   lua_pushboolean( L, MOON_FLAG_EQMETHOD( *a, *b ) );
   return 1;
 }
 #endif
 
-static void MOON_FLAG_DEF( lua_State* L, int nups ) {
+static void MOON_FLAG_DEF( lua_State* L ) {
   luaL_Reg const metamethods[] = {
 #ifndef MOON_FLAG_NOBITOPS
     { "__add", MOON_FLAG_ADD },
@@ -128,11 +128,10 @@ static void MOON_FLAG_DEF( lua_State* L, int nups ) {
   moon_object_type const flag_type = {
     MOON_FLAG_NAME,
     sizeof( MOON_FLAG_TYPE ),
-    0, /* NULL (function) pointer */
     metamethods,
     NULL, /* no methods */
   };
-  moon_defobject( L, &flag_type, nups );
+  moon_defobject( L, &flag_type, 0 );
 }
 
 

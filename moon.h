@@ -1,4 +1,4 @@
-/* Copyright 2013,2014 Philipp Janda <siffiejoe@gmx.net>
+/* Copyright 2013-2015 Philipp Janda <siffiejoe@gmx.net>
  *
  * You may do anything with this work that copyright law would normally
  * restrict, so long as you retain the above notice(s) and this license
@@ -17,13 +17,61 @@
 #include <lauxlib.h>
 
 
+#define MOON_VERSION (200)
+#define MOON_VERSION_MAJOR (MOON_VERSION/100)
+#define MOON_VERSION_MINOR (MOON_VERSION-(MOON_VERSION_MAJOR*100))
+
+
+/* fake CLANG feature detection on other compilers */
+#ifndef __has_attribute
+#  define __has_attribute( x ) 0
+#endif
+
+/* platform independent attributes for exporting/importing functions
+ * from shared libraries */
+#if !defined( _WIN32 ) && !defined( __CYGWIN__ )
+#  ifndef MOON_LOCAL
+#    define MOON_LOCAL
+#  endif
+#  ifndef MOON_EXPORT
+#    define MOON_EXPORT __declspec(dllexport)
+#  endif
+#  ifndef MOON_IMPORT
+#    define MOON_IMPORT __declspec(dllimport)
+#  endif
+#elif (defined( __GNUC__ ) && __GNUC__ >= 4) || __has_attribute( __visibility__ )
+#  ifndef MOON_LOCAL
+#    define MOON_LOCAL __attribute__((__visibility__("hidden")))
+#  endif
+#  ifndef MOON_EXPORT
+#    define MOON_EXPORT __attribute__((__visibility__("default")))
+#  endif
+#  ifndef MOON_IMPORT
+#    define MOON_IMPORT __attribute__((__visibility__("default")))
+#  endif
+#endif
+
+#ifndef MOON_LOCAL
+#  define MOON_LOCAL
+#endif
+
+#ifndef MOON_EXPORT
+#  define MOON_EXPORT
+#endif
+
+#ifndef MOON_IMPORT
+#  define MOON_IMPORT
+#endif
+
+
 /* handle linking tricks for moon toolkit */
 #if defined( MOON_PREFIX )
 /* - change the symbol names of functions to avoid linker conflicts
  * - moon.c needs to be compiled (and linked) separately
  */
 #  if !defined( MOON_API )
-#    define MOON_API extern
+/* the following is fine for static linking moon.c to your C module */
+#    define MOON_API MOON_LOCAL
 #  endif
 #  undef MOON_INCLUDE_SOURCE
 #else /* MOON_PREFIX */
@@ -33,7 +81,7 @@
  */
 #  define MOON_PREFIX moon
 #  undef MOON_API
-#  if defined( __GNUC__ ) || defined( __clang__ )
+#  if defined( __GNUC__ ) || __has_attribute( __unused__ )
 #    define MOON_API __attribute__((__unused__)) static
 #  else
 #    define MOON_API static
@@ -52,23 +100,17 @@
  * if we change the prefix behind the scenes */
 #define moon_defobject      MOON_CONCAT( MOON_PREFIX, _defobject )
 #define moon_newobject      MOON_CONCAT( MOON_PREFIX, _newobject )
-#define moon_newobject_ref  MOON_CONCAT( MOON_PREFIX, _newobject_ref )
-#define moon_propindex      MOON_CONCAT( MOON_PREFIX, _propindex )
-#define moon_atexit         MOON_CONCAT( MOON_PREFIX, _atexit )
-#define moon_finalizer      MOON_CONCAT( MOON_PREFIX, _finalizer )
-#define moon_resource       MOON_CONCAT( MOON_PREFIX, _resource )
-#define moon_release        MOON_CONCAT( MOON_PREFIX, _release )
-#define moon_preload_c      MOON_CONCAT( MOON_PREFIX, _preload_c )
-#define moon_preload_lua    MOON_CONCAT( MOON_PREFIX, _preload_lua )
-#define moon_setuvfield     MOON_CONCAT( MOON_PREFIX, _setuvfield )
-#define moon_getuvfield     MOON_CONCAT( MOON_PREFIX, _getuvfield )
-#define moon_light2full     MOON_CONCAT( MOON_PREFIX, _light2full )
-#define moon_lookuptable    MOON_CONCAT( MOON_PREFIX, _lookuptable )
-#define moon_pushoption     MOON_CONCAT( MOON_PREFIX, _pushoption )
-#define moon_checkoption    MOON_CONCAT( MOON_PREFIX, _checkoption )
+#define moon_newpointer     MOON_CONCAT( MOON_PREFIX, _newpointer )
+#define moon_newfield       MOON_CONCAT( MOON_PREFIX, _newfield )
+#define moon_killobject     MOON_CONCAT( MOON_PREFIX, _killobject )
+#define moon_checkobject    MOON_CONCAT( MOON_PREFIX, _checkobject )
+#define moon_testobject     MOON_CONCAT( MOON_PREFIX, _testobject )
 #define moon_checkint       MOON_CONCAT( MOON_PREFIX, _checkint )
 #define moon_optint         MOON_CONCAT( MOON_PREFIX, _optint )
-#define moon_checkarray     MOON_CONCAT( MOON_PREFIX, _checkarray )
+#define moon_atexit         MOON_CONCAT( MOON_PREFIX, _atexit )
+#define moon_setuvfield     MOON_CONCAT( MOON_PREFIX, _setuvfield )
+#define moon_getuvfield     MOON_CONCAT( MOON_PREFIX, _getuvfield )
+#define moon_getcache       MOON_CONCAT( MOON_PREFIX, _getcache )
 
 
 /* the type used to collect all necessary information to define an
@@ -76,63 +118,52 @@
 typedef struct {
   char const* metatable_name;
   size_t userdata_size;
-  void (*initializer)( void* );
   luaL_Reg const* metamethods;
   luaL_Reg const* methods;
 } moon_object_type;
 
 
-/* necessary information to preload lua modules */
+/* all objects defined via moon_defobject share a common header of the
+ * following type: */
 typedef struct {
-  char const* require_name;
-  char const* error_name;
-  char const* code;
-  size_t code_length;
-} moon_lua_reg;
+  unsigned char flags;
+  unsigned char cleanup_offset;
+  unsigned char vcheck_offset;
+  unsigned char object_offset;
+} moon_object_header;
+
+
+/* flag values in moon_object_header: */
+#define MOON_OBJECT_IS_VALID      0x01u
+#define MOON_OBJECT_IS_POINTER    0x02u
 
 
 /* additional Lua API functions in this toolkit */
 MOON_API void moon_defobject( lua_State* L,
                               moon_object_type const* t, int nup );
 MOON_API void* moon_newobject( lua_State* L, char const* name,
-                               int env_index );
-MOON_API void* moon_newobject_ref( lua_State* L, char const* name,
-                                   int ref_index );
-MOON_API void moon_propindex( lua_State* L, luaL_Reg const methods[],
-                              lua_CFunction pindex, int nups );
-MOON_API int* moon_atexit( lua_State* L, lua_CFunction func );
-MOON_API void moon_finalizer( lua_State* L, int idx );
-MOON_API void** moon_resource( lua_State* L,
-                               void (*releasef)( void* ) );
-MOON_API void moon_release( void** ptr );
-MOON_API void moon_preload_c( lua_State* L, luaL_Reg const libs[] );
-MOON_API void moon_preload_lua( lua_State* L,
-                                moon_lua_reg const libs[] );
-MOON_API int moon_getuvfield( lua_State* L, int i, char const* key );
-MOON_API void moon_setuvfield( lua_State* L, int i, char const* key );
-MOON_API void moon_light2full( lua_State* L, int index );
-MOON_API void moon_lookuptable( lua_State* L,
-                                char const* const names[],
-                                lua_Integer const values[] );
-MOON_API void moon_pushoption( lua_State* L, lua_Integer val,
-                               lua_Integer const values[],
-                               char const* const names[],
-                               int lookupindex );
-MOON_API lua_Integer moon_checkoption( lua_State* L, int idx,
-                                       char const* def,
-                                       char const* const names[],
-                                       lua_Integer const values[],
-                                       int lookupindex );
+                               void (*destructor)( void* ) );
+MOON_API void** moon_newpointer( lua_State* L, char const* name,
+                                 void (*destructor)( void* ) );
+MOON_API void** moon_newfield( lua_State* L, char const* name,
+                               int idx, int (*isvalid)( void* p ),
+                               void* p );
+MOON_API void moon_killobject( lua_State* L, int idx );
+MOON_API void* moon_checkobject( lua_State* L, int idx,
+                                 char const* name );
+MOON_API void* moon_testobject( lua_State* L, int idx,
+                                char const* name );
+
 MOON_API lua_Integer moon_checkint( lua_State* L, int idx,
                                     lua_Integer low,
                                     lua_Integer high );
 MOON_API lua_Integer moon_optint( lua_State* L, int idx,
                                   lua_Integer low, lua_Integer high,
                                   lua_Integer def );
-MOON_API void* moon_checkarray( lua_State* L, int idx,
-                                void* buffer, size_t* nelems, size_t esize,
-                                int (*assignfn)(lua_State*, int i, void*),
-                                int extra );
+MOON_API int* moon_atexit( lua_State* L, lua_CFunction func );
+MOON_API int moon_getuvfield( lua_State* L, int i, char const* key );
+MOON_API void moon_setuvfield( lua_State* L, int i, char const* key );
+MOON_API void moon_getcache( lua_State* L, int index );
 
 
 /* some debugging macros */
@@ -171,48 +202,15 @@ MOON_API void moon_stack_assert_( lua_State* L, char const* file,
 #endif
 
 
-/* handle compatibility with different Lua versions */
-#if !defined( LUA_VERSION_NUM ) || LUA_VERSION_NUM < 501
-#  error unsupported Lua version
-#elif LUA_VERSION_NUM == 501
-
-/* Lua 5.1 support */
-#  define moon_checkudata   MOON_CONCAT( MOON_PREFIX, _checkudata )
-#  define moon_testudata    MOON_CONCAT( MOON_PREFIX, _testudata )
-#  define moon_absindex     MOON_CONCAT( MOON_PREFIX, _absindex )
-#  define moon_register( L, libs ) luaL_register( (L), NULL, libs )
-#  define moon_setuservalue( L, i ) lua_setfenv( L, i )
-#  define moon_getuservalue( L, i ) lua_getfenv( L, i )
-#  define moon_rawlen( L, i ) lua_objlen( L, i )
-MOON_API int moon_absindex( lua_State* L, int i );
-MOON_API void* moon_testudata( lua_State* L, int i, char const* tname );
-MOON_API void* moon_checkudata( lua_State* L, int i, char const* tname );
-
-#elif LUA_VERSION_NUM == 502
-
-/* Lua 5.2 support */
-#  define moon_checkudata   MOON_CONCAT( MOON_PREFIX, _checkudata )
-#  define moon_testudata( L, i, t ) luaL_testudata( L, i, t )
-#  define moon_absindex( L, i ) lua_absindex( L, i )
-#  define moon_register( L, libs ) luaL_setfuncs( L, libs, 0 )
-#  define moon_setuservalue( L, i ) lua_setuservalue( L, i )
-#  define moon_getuservalue( L, i ) lua_getuservalue( L, i )
-#  define moon_rawlen( L, i ) lua_rawlen( L, i )
-MOON_API void* moon_checkudata( lua_State* L, int i, char const* tname );
-
-#elif LUA_VERSION_NUM == 503
-
-/* Lua 5.3 support */
-#  define moon_checkudata( L, i, t ) luaL_checkudata( L, i, t )
-#  define moon_testudata( L, i, t ) luaL_testudata( L, i, t )
-#  define moon_absindex( L, i ) lua_absindex( L, i )
-#  define moon_register( L, libs ) luaL_setfuncs( L, libs, 0 )
-#  define moon_setuservalue( L, i ) lua_setuservalue( L, i )
-#  define moon_getuservalue( L, i ) lua_getuservalue( L, i )
-#  define moon_rawlen( L, i ) lua_rawlen( L, i )
-
+/* Lua version compatibility is out of scope for this library, so only
+ * compatibility functions needed for the implementation are provided.
+ * Consider using the Compat-5.3 project which provides backports of
+ * many Lua 5.3 C API functions for Lua 5.1 and 5.2.
+ */
+#if LUA_VERSION_NUM < 502
+MOON_API int moon_absindex( lua_State* L, int idx );
 #else
-#  error unsupported Lua version
+#  define moon_absindex( L, i ) lua_absindex( L, i )
 #endif
 
 
