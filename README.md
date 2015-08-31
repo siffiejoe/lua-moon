@@ -68,7 +68,6 @@ macro substitution.
     typedef struct {
       char const*       metatable_name;
       size_t            userdata_size;
-      luaL_Reg const*   metamethods;
       luaL_Reg const*   methods;
     } moon_object_type;
 
@@ -79,13 +78,13 @@ type (using `moon_defobject`).
 `userdata_size` is passed to `lua_newuserdata` when constructing such
 an object. If it is zero, you may only create pointer objects (via
 `moon_newpointer` or `moon_newfield`).
-`metamethods` and `methods` are the usual Lua function registration
-arrays. The `metamethods` are added directly to the metatable, the
-`methods` are put in a table in the `__index` field.  Both can be
-`NULL`. If `metamethods` contains an `__index` function _and_
-`methods` is not `NULL`, a special function is registered that first
-looks in the methods table and then calls the original `__index`
-function if necessary.
+`methods` is the usual Lua function registration array. Functions with
+a name starting with two underscores are added to the metatable, while
+all other functions are added to table in the `__index` field. If the
+`methods` array contains an `__index` method _and_ non-metamethods
+(i.e. names not starting with `__`), a special function is registered
+that first looks in the index table and then calls the original
+`__index` method if necessary.
 
 
 ####                     `moon_object_header`                     ####

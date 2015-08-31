@@ -345,11 +345,8 @@ int luaopen_objex( lua_State* L ) {
     { "makeD", objex_makeD },
     { NULL, NULL }
   };
-  luaL_Reg const A_metamethods[] = {
-    { "__index", A_index },
-    { NULL, NULL }
-  };
   luaL_Reg const A_methods[] = {
+    { "__index", A_index },
     { "switch", A_switch },
     { "printme", A_printme },
     { NULL, NULL }
@@ -357,30 +354,22 @@ int luaopen_objex( lua_State* L ) {
   moon_object_type const A_type = {
     "A",
     sizeof( A ),
-    A_metamethods,
     A_methods
   };
-  luaL_Reg const B_metamethods[] = {
+  luaL_Reg const B_methods[] = {
     { "__index", B_index },
     { "__newindex", B_newindex },
-    { NULL, NULL }
-  };
-  luaL_Reg const B_methods[] = {
     { "printme", B_printme },
     { NULL, NULL }
   };
   moon_object_type const B_type = {
     "B",
     sizeof( B ),
-    B_metamethods,
     B_methods
   };
-  luaL_Reg const C_metamethods[] = {
+  luaL_Reg const C_methods[] = {
     { "__index", C_index },
     { "__newindex", C_newindex },
-    { NULL, NULL }
-  };
-  luaL_Reg const C_methods[] = {
     { "printme", C_printme },
     { "close", C_close },
     { NULL, NULL }
@@ -388,22 +377,17 @@ int luaopen_objex( lua_State* L ) {
   moon_object_type const C_type = {
     "C",
     sizeof( C ),
-    C_metamethods,
     C_methods
   };
-  luaL_Reg const D_metamethods[] = {
+  luaL_Reg const D_methods[] = {
     { "__index", D_index },
     { "__newindex", D_newindex },
-    { NULL, NULL }
-  };
-  luaL_Reg const D_methods[] = {
     { "printme", D_printme },
     { NULL, NULL }
   };
   moon_object_type const D_type = {
     "D",
     sizeof( D ),
-    D_metamethods,
     D_methods
   };
   moon_defobject( L, &A_type, 0 );

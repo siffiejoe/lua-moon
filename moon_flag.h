@@ -109,7 +109,7 @@ static int MOON_FLAG_EQ( lua_State* L ) {
 #endif
 
 static void MOON_FLAG_DEF( lua_State* L ) {
-  luaL_Reg const metamethods[] = {
+  luaL_Reg const methods[] = {
 #ifndef MOON_FLAG_NOBITOPS
     { "__add", MOON_FLAG_ADD },
     { "__sub", MOON_FLAG_SUB },
@@ -128,8 +128,7 @@ static void MOON_FLAG_DEF( lua_State* L ) {
   moon_object_type const flag_type = {
     MOON_FLAG_NAME,
     sizeof( MOON_FLAG_TYPE ),
-    metamethods,
-    NULL, /* no methods */
+    methods
   };
   moon_defobject( L, &flag_type, 0 );
 }

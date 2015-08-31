@@ -118,7 +118,6 @@
 typedef struct {
   char const* metatable_name;
   size_t userdata_size;
-  luaL_Reg const* metamethods;
   luaL_Reg const* methods;
 } moon_object_type;
 

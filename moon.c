@@ -171,10 +171,12 @@ static void moon_makeindex_( lua_State* L, luaL_Reg const methods[],
     lua_newtable( L );
     for( ; methods->func; ++methods ) {
       int i = 0;
-      for( i = 0; i < nups; ++i )
-        lua_pushvalue( L, -nups-1 );
-      lua_pushcclosure( L, methods->func, nups );
-      lua_setfield( L, -2, methods->name );
+      if( methods->name[ 0 ] != '_' || methods->name[ 1 ] != '_' ) {
+        for( i = 0; i < nups; ++i )
+          lua_pushvalue( L, -nups-1 );
+        lua_pushcclosure( L, methods->func, nups );
+        lua_setfield( L, -2, methods->name );
+      }
     }
     if( pindex ) {
       lua_pushcfunction( L, pindex );
@@ -199,6 +201,7 @@ static void moon_makeindex_( lua_State* L, luaL_Reg const methods[],
 MOON_API void moon_defobject( lua_State* L,
                               moon_object_type const* t,
                               int nups ) {
+  int has_methods = 0;
   lua_CFunction index = 0;
   luaL_checkstack( L, 2*nups+4, "not enough stack space available" );
   /* we don't use luaL_newmetatable to make sure that we never have a
@@ -208,35 +211,38 @@ MOON_API void moon_defobject( lua_State* L,
     luaL_error( L, "type '%s' is already defined", t->metatable_name );
   lua_pop( L, 1 );
   lua_newtable( L );
+  lua_pushstring( L, t->metatable_name );
+  lua_pushcclosure( L, moon_object_default_tostring_, 1 );
+  lua_setfield( L, -2, "__tostring" );
+  if( t->methods != NULL ) {
+    luaL_Reg const* l = t->methods;
+    int i = 0;
+    for( ; l->func != NULL; ++l ) {
+      if( l->name[ 0 ] == '_' && l->name[ 1 ] == '_' ) {
+        if( 0 != strcmp( l->name+2, "index" ) ) {
+          for( i = 0; i < nups; ++i )
+            lua_pushvalue( L, -nups-1 );
+          lua_pushcclosure( L, l->func, nups );
+          lua_setfield( L, -2, l->name );
+        } else /* handle __index later */
+          index = l->func;
+      } else
+        has_methods = 1;
+    }
+  }
+  if( has_methods || index ) {
+    int i = 0;
+    for( i = 0; i < nups; ++i )
+      lua_pushvalue( L, -nups-1 );
+    moon_makeindex_( L, has_methods ? t->methods : NULL, index, nups );
+    lua_setfield( L, -2, "__index" );
+  }
   lua_pushboolean( L, 0 );
   lua_setfield( L, -2, "__metatable" );
   lua_pushstring( L, t->metatable_name );
   lua_setfield( L, -2, "__name" );
-  lua_pushstring( L, t->metatable_name );
-  lua_pushcclosure( L, moon_object_default_tostring_, 1 );
-  lua_setfield( L, -2, "__tostring" );
   lua_pushcfunction( L, moon_object_default_gc_ );
   lua_setfield( L, -2, "__gc" );
-  if( t->metamethods != NULL ) {
-    luaL_Reg const* l = t->metamethods;
-    int i = 0;
-    for( ; l->name != NULL; ++l ) {
-      if( 0 != strcmp( l->name, "__index" ) ) {
-        for( i = 0; i < nups; ++i )
-          lua_pushvalue( L, -nups-1 );
-        lua_pushcclosure( L, l->func, nups );
-        lua_setfield( L, -2, l->name );
-      } else /* handle __index later */
-        index = l->func;
-    }
-  }
-  if( t->methods != NULL || index ) {
-    int i = 0;
-    for( i = 0; i < nups; ++i )
-      lua_pushvalue( L, -nups-1 );
-    moon_makeindex_( L, t->methods, index, nups );
-    lua_setfield( L, -2, "__index" );
-  }
   lua_pushinteger( L, MOON_VERSION );
   lua_setfield( L, -2, "moon_version" );
   lua_pushinteger( L, (lua_Integer)t->userdata_size );
