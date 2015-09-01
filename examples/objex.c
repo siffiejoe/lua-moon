@@ -7,6 +7,7 @@
 #include "moon.h"
 
 
+/* Types to be exposed to Lua: */
 typedef struct {
   int x;
   int y;
@@ -32,6 +33,9 @@ typedef struct {
 } A;
 
 
+/* Check functions to make sure that embedded userdata are still
+ * valid. A change in the tagged union (A_switch) or a running
+ * a cleanup function (C_close) can make embedded userdata invalid. */
 static int type_b_check( void* p ) {
   int* tagp = p;
   int res = *tagp == TYPE_B;
@@ -51,16 +55,28 @@ static int object_valid_check( void* p ) {
 }
 
 
+/* The (meta-)methods are pretty straightforward. Just use
+ * `moon_checkobject` instead of `luaL_checkudata`. */
 static int A_index( lua_State* L ) {
   A* a = moon_checkobject( L, 1, "A" );
-  size_t n = 0;
-  char const* key = luaL_checklstring( L, 2, &n );
+  char const* key = luaL_checkstring( L, 2 );
   if( 0 == strcmp( key, "tag" ) ) {
     lua_pushstring( L, a->tag == TYPE_B ? "b" : "c" );
   } else if( 0 == strcmp( key, "b" ) && a->tag == TYPE_B ) {
+    /* To avoid creating the sub-userdata on every __index access, the
+     * userdata values are cached in the uservalue field of the parent
+     * using the same field name as in the struct. */
     if( moon_getuvfield( L, 1, "b" ) == LUA_TNIL ) {
-      /* use the uservalue table as a cache for the embedded userdata */
+      /* Create a new userdata that represents a field in another
+       * object already exposed to Lua. A gc function is unnecessary
+       * since the parent userdata already takes care of that.
+       * However, the parent userdata must be kept alive long enough
+       * (by putting the value at index 1 into the uservalue table of
+       * the new userdata), and the new userdata may only be used as
+       * long as the `a->tag` field satisfies the `type_b_check`
+       * function! */
       void** p = moon_newfield( L, "B", 1, type_b_check, &(a->tag) );
+      /* The userdata stores a pointer to the `a->b` field. */
       *p = &(a->u.b);
       lua_replace( L, -2 );
       lua_pushvalue( L, -1 );
@@ -68,7 +84,6 @@ static int A_index( lua_State* L ) {
     }
   } else if( 0 == strcmp( key, "c" ) && a->tag == TYPE_C ) {
     if( moon_getuvfield( L, 1, "c" ) == LUA_TNIL ) {
-      /* use the uservalue table as a cache for the embedded userdata */
       void** p = moon_newfield( L, "C", 1, type_c_check, &(a->tag) );
       *p = &(a->u.c);
       lua_replace( L, -2 );
@@ -109,8 +124,7 @@ static int A_printme( lua_State* L ) {
 
 static int B_index( lua_State* L ) {
   B* b = moon_checkobject( L, 1, "B" );
-  size_t n = 0;
-  char const* key = luaL_checklstring( L, 2, &n );
+  char const* key = luaL_checkstring( L, 2 );
   if( 0 == strcmp( key, "f" ) )
     lua_pushnumber( L, b->f );
   else
@@ -121,8 +135,7 @@ static int B_index( lua_State* L ) {
 
 static int B_newindex( lua_State* L ) {
   B* b = moon_checkobject( L, 1, "B" );
-  size_t n = 0;
-  char const* key = luaL_checklstring( L, 2, &n );
+  char const* key = luaL_checkstring( L, 2 );
   if( 0 == strcmp( key, "f" ) )
     b->f = luaL_checknumber( L, 3 );
   return 0;
@@ -138,15 +151,22 @@ static int B_printme( lua_State* L ) {
 
 static int C_index( lua_State* L ) {
   C* c = moon_checkobject( L, 1, "C" );
+  /* You can get the a pointer to the `moon_object_header` structure
+   * common to all objects created via the moon toolkit by using the
+   * normal `lua_touserdata` function: */
   moon_object_header* h = lua_touserdata( L, 1 );
-  size_t n = 0;
-  char const* key = luaL_checklstring( L, 2, &n );
+  char const* key = luaL_checkstring( L, 2 );
+  /* The C object type has been/will be registered with two additional
+   * upvalues. Since the type has a custom `__index` metamethod *and*
+   * normal methods, those upvalues can be found at index 3 and 4. */
   printf( "__index C (uv1: %d, uv2: %d)\n",
           (int)lua_tointeger( L, lua_upvalueindex( 3 ) ),
           (int)lua_tointeger( L, lua_upvalueindex( 4 ) ) );
   if( 0 == strcmp( key, "d" ) ) {
     if( moon_getuvfield( L, 1, "d" ) == LUA_TNIL ) {
-      /* use the uservalue table as a cache for the embedded userdata */
+      /* The `object_valid_check` makes sure that the parent object
+       * has the `MOON_OBJECT_IS_VALID` flag set. This flag is reset
+       * by the `moon_killobject` function. */
       void** p = moon_newfield( L, "D", 1, object_valid_check, &h->flags );
       *p = &(c->d);
       lua_replace( L, -2 );
@@ -161,8 +181,7 @@ static int C_index( lua_State* L ) {
 
 static int C_newindex( lua_State* L ) {
   C* c = moon_checkobject( L, 1, "C" );
-  size_t n = 0;
-  char const* key = luaL_checklstring( L, 2, &n );
+  char const* key = luaL_checkstring( L, 2 );
   printf( "__newindex C (uv1: %d, uv2: %d)\n",
           (int)lua_tointeger( L, lua_upvalueindex( 1 ) ),
           (int)lua_tointeger( L, lua_upvalueindex( 2 ) ) );
@@ -175,9 +194,13 @@ static int C_newindex( lua_State* L ) {
 
 
 static int C_close( lua_State* L ) {
-  /* test moon_testobject; moon_checkobject would work better here! */
+  /* Use `moon_testobject` here to test it. `moon_checkobject` would
+   * make more sense in practice! */
   if( !moon_testobject( L, 1, "C" ) )
     luaL_error( L, "need a 'C' object" );
+  /* Run cleanup function (if any) to release resources and mark the
+   * C object as invalid. `moon_checkobject` will raise an error for
+   * invalid objects. */
   moon_killobject( L, 1 );
   return 0;
 }
@@ -195,8 +218,7 @@ static int C_printme( lua_State* L ) {
 
 static int D_index( lua_State* L ) {
   D* d = moon_checkobject( L, 1, "D" );
-  size_t n = 0;
-  char const* key = luaL_checklstring( L, 2, &n );
+  char const* key = luaL_checkstring( L, 2 );
   if( 0 == strcmp( key, "x" ) )
     lua_pushinteger( L, d->x );
   else if( 0 == strcmp( key, "y" ) )
@@ -209,8 +231,7 @@ static int D_index( lua_State* L ) {
 
 static int D_newindex( lua_State* L ) {
   D* d = moon_checkobject( L, 1, "D" );
-  size_t n = 0;
-  char const* key = luaL_checklstring( L, 2, &n );
+  char const* key = luaL_checkstring( L, 2 );
   if( 0 == strcmp( key, "x" ) )
     d->x = (int)moon_checkint( L, 3, INT_MIN, INT_MAX );
   else if( 0 == strcmp( key, "y" ) )
@@ -227,11 +248,16 @@ static int D_printme( lua_State* L ) {
 
 
 static int objex_newA( lua_State* L ) {
+  /* Create a new A object. The memory is allocated inside the
+   * userdata when using `moon_newobject`. Here no cleanup function
+   * is used (0 pointer). */
   A* ud = moon_newobject( L, "A", 0 );
   ud->tag = TYPE_B;
   ud->u.b.f = 0.0;
-  /* we need a uservalue table as cache for embedded userdata
-   * fields */
+  /* `moon_newobject`, and `moon_newpointer` don't allocate a
+   * uservalue table by default. `moon_newfield` only does if the
+   * given index is non-zero. If you need a uservalue table (e.g. to
+   * cache embedded userdatas), you have to add one yourself: */
   lua_newtable( L );
 #if LUA_VERSION_NUM < 502
   lua_setfenv( L, -2 );
@@ -254,6 +280,8 @@ static void C_destructor( void* p ) {
 }
 
 static int objex_newC( lua_State* L ) {
+  /* Create a C object and register a dummy cleanup function (just
+   * for tests): */
   C* c = moon_newobject( L, "C", C_destructor );
   c->d.x = 0;
   c->d.y = 0;
@@ -278,6 +306,8 @@ static int objex_newD( lua_State* L ) {
 
 static int objex_getD( lua_State* L ) {
   static D d = { 1, 2 };
+  /* `moon_newpointer` without a cleanup function can be used to
+   * expose a global variable to Lua: */
   void** ud = moon_newpointer( L, "D", 0 );
   *ud = &d;
   return 1;
@@ -302,6 +332,8 @@ static void freeD( void* d ) {
 static int objex_makeD( lua_State* L ) {
   int x = (int)moon_checkint( L, 1, INT_MIN, INT_MAX );
   int y = (int)moon_checkint( L, 2, INT_MIN, INT_MAX );
+  /* Usually, `moon_newpointer` is used when your API handles memory
+   * allocation and deallocation for its types: */
   void** p = moon_newpointer( L, "D", freeD );
   *p = newD( x, y );
   if( !*p )
@@ -345,6 +377,8 @@ int luaopen_objex( lua_State* L ) {
     { "printme", D_printme },
     { NULL, NULL }
   };
+  /* All object types must be defined once (this creates the
+   * metatable): */
   moon_defobject( L, "A", sizeof( A ), A_methods, 0 );
   moon_defobject( L, "B", sizeof( B ), B_methods, 0 );
   lua_pushinteger( L, 1 );
