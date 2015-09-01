@@ -149,7 +149,7 @@ static int B_printme( lua_State* L ) {
 
 static int C_index( lua_State* L ) {
   C* c = moon_checkobject( L, 1, "C" );
-  /* You can get the a pointer to the `moon_object_header` structure
+  /* You can get a pointer to the `moon_object_header` structure
    * common to all objects created via the moon toolkit by using the
    * normal `lua_touserdata` function: */
   moon_object_header* h = lua_touserdata( L, 1 );
@@ -332,6 +332,9 @@ static int objex_makeD( lua_State* L ) {
   /* Usually, `moon_newpointer` is used when your API handles memory
    * allocation and deallocation for its types: */
   void** p = moon_newpointer( L, "D", freeD );
+  /* The cleanup function will only run if the pointer is set to a
+   * non-NULL value. `moon_checkobject` also will raise an error when
+   * passed a NULL object! */
   *p = newD( x, y );
   if( !*p )
     luaL_error( L, "memory allocation error" );
@@ -349,6 +352,9 @@ int luaopen_objex( lua_State* L ) {
     { "makeD", objex_makeD },
     { NULL, NULL }
   };
+  /* You put metamethods and normal methods in the same luaL_Reg
+   * array. `moon_defobject` puts the functions in the right place
+   * automatically. */
   luaL_Reg const A_methods[] = {
     { "__index", A_index },
     { "switch", A_switch },
@@ -375,7 +381,7 @@ int luaopen_objex( lua_State* L ) {
     { NULL, NULL }
   };
   /* All object types must be defined once (this creates the
-   * metatable): */
+   * metatables): */
   moon_defobject( L, "A", sizeof( A ), A_methods, 0 );
   moon_defobject( L, "B", sizeof( B ), B_methods, 0 );
   lua_pushinteger( L, 1 );
