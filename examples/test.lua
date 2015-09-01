@@ -52,6 +52,7 @@ do
   c2:printme()
   c2.d = d2
   c2:printme()
+  d2:printme()
 end
 collectgarbage()
 

@@ -45,6 +45,8 @@ The main part of the moon toolkit.
     #define MOON_IMPORT
     #define MOON_LOCAL
 
+Macros for specifying symbol visibility.
+
 
 ####                         `MOON_CONCAT`                        ####
 
@@ -105,10 +107,10 @@ This function creates a new metatable and registers the functions in
 the `luaL_Reg` array (functions starting with double underscores `__`
 go into the metatable, the rest goes into a table used by the
 `__index` metafield). In case a metatable with the same name already
-exists, this function raises an error. The `userdata_size` is stored
-in the metatable for `moon_newobject` -- use a size of 0 to prohibit
-use of `moon_newobject` (e.g. for incomplete types). If `nup` is
-non-zero, it pops those upvalues from the current Lua stack top and
+exists, an error is raised. The `userdata_size` is stored in the
+metatable for the `moon_newobject` function -- use a size of 0 to
+prohibit use of `moon_newobject` (e.g. for incomplete types). If `nup`
+is non-zero, it pops those upvalues from the current Lua stack top and
 makes them available to all registered functions (metamethods *and*
 methods). In case the object type has an `__index` function *and*
 methods, the original `__index` function will be called with two extra
@@ -171,7 +173,7 @@ object is still valid. This can be used to make sure that a tagged
 union used as parent userdata still has the correct type, or that the
 parent userdata hasn't released any necessary resources prior to
 garbage collection. If the value referenced by `idx` is a moon object
-that also has an `isvalid` check registered, the checks are performed
+that also has an `isvalid` check registered, all checks are performed
 in the order from parent object(s) to child object.
 
 
@@ -218,7 +220,7 @@ dereferenced once).
                            int idx,
                            char const* metatable_name );
 
-Performs the same checks as `moon_checkobject`, but returns NULL if
+Performs the same checks as `moon_checkobject`, but returns `NULL` if
 any of those conditions are false instead of raising an error.
 
 
@@ -336,7 +338,8 @@ contents of the Lua stack in human-readable format to `stderr`.
 
 ####                        `moon_absindex`                       ####
 
-Compatiblity macro for `lua_absindex`, but also available on Lua 5.1.
+Compatiblity macro for `lua_absindex`, but also available on Lua 5.1
+as a function.
 
 
 ###                          `moon_flag.h`                         ###

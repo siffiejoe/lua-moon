@@ -55,14 +55,9 @@ static int A_index( lua_State* L ) {
   A* a = moon_checkobject( L, 1, "A" );
   size_t n = 0;
   char const* key = luaL_checklstring( L, 2, &n );
-#define S "tag"
-  if( n == sizeof( S )-1 && memcmp( key, S, n ) == 0 ) {
-#undef S
+  if( 0 == strcmp( key, "tag" ) ) {
     lua_pushstring( L, a->tag == TYPE_B ? "b" : "c" );
-#define S "b"
-  } else if( n == sizeof( S )-1 && memcmp( key, S, n ) == 0 &&
-             a->tag == TYPE_B ) {
-#undef S
+  } else if( 0 == strcmp( key, "b" ) && a->tag == TYPE_B ) {
     if( moon_getuvfield( L, 1, "b" ) == LUA_TNIL ) {
       /* use the uservalue table as a cache for the embedded userdata */
       void** p = moon_newfield( L, "B", 1, type_b_check, &(a->tag) );
@@ -71,10 +66,7 @@ static int A_index( lua_State* L ) {
       lua_pushvalue( L, -1 );
       moon_setuvfield( L, 1, "b" );
     }
-#define S "c"
-  } else if( n == sizeof( S )-1 && memcmp( key, S, n ) == 0 &&
-             a->tag == TYPE_C ) {
-#undef S
+  } else if( 0 == strcmp( key, "c" ) && a->tag == TYPE_C ) {
     if( moon_getuvfield( L, 1, "c" ) == LUA_TNIL ) {
       /* use the uservalue table as a cache for the embedded userdata */
       void** p = moon_newfield( L, "C", 1, type_c_check, &(a->tag) );
@@ -83,7 +75,6 @@ static int A_index( lua_State* L ) {
       lua_pushvalue( L, -1 );
       moon_setuvfield( L, 1, "c" );
     }
-#undef S
   } else
     lua_pushnil( L );
   return 1;
@@ -120,9 +111,7 @@ static int B_index( lua_State* L ) {
   B* b = moon_checkobject( L, 1, "B" );
   size_t n = 0;
   char const* key = luaL_checklstring( L, 2, &n );
-#define S "f"
-  if( n == sizeof( S )-1 && memcmp( key, S, n ) == 0 )
-#undef S
+  if( 0 == strcmp( key, "f" ) )
     lua_pushnumber( L, b->f );
   else
     lua_pushnil( L );
@@ -134,9 +123,7 @@ static int B_newindex( lua_State* L ) {
   B* b = moon_checkobject( L, 1, "B" );
   size_t n = 0;
   char const* key = luaL_checklstring( L, 2, &n );
-#define S "f"
-  if( n == sizeof( S )-1 && memcmp( key, S, n ) == 0 )
-#undef S
+  if( 0 == strcmp( key, "f" ) )
     b->f = luaL_checknumber( L, 3 );
   return 0;
 }
@@ -157,8 +144,7 @@ static int C_index( lua_State* L ) {
   printf( "__index C (uv1: %d, uv2: %d)\n",
           (int)lua_tointeger( L, lua_upvalueindex( 3 ) ),
           (int)lua_tointeger( L, lua_upvalueindex( 4 ) ) );
-#define S "d"
-  if( n == sizeof( S )-1 && memcmp( key, S, n ) == 0 ) {
+  if( 0 == strcmp( key, "d" ) ) {
     if( moon_getuvfield( L, 1, "d" ) == LUA_TNIL ) {
       /* use the uservalue table as a cache for the embedded userdata */
       void** p = moon_newfield( L, "D", 1, object_valid_check, &h->flags );
@@ -167,7 +153,6 @@ static int C_index( lua_State* L ) {
       lua_pushvalue( L, -1 );
       moon_setuvfield( L, 1, "d" );
     }
-#undef S
   } else
     lua_pushnil( L );
   return 1;
@@ -181,9 +166,7 @@ static int C_newindex( lua_State* L ) {
   printf( "__newindex C (uv1: %d, uv2: %d)\n",
           (int)lua_tointeger( L, lua_upvalueindex( 1 ) ),
           (int)lua_tointeger( L, lua_upvalueindex( 2 ) ) );
-#define S "d"
-  if( n == sizeof( S )-1 && memcmp( key, S, n ) == 0 ) {
-#undef S
+  if( 0 == strcmp( key, "d" ) ) {
     D* d = moon_checkobject( L, 3, "D" );
     c->d = *d;
   }
@@ -214,13 +197,9 @@ static int D_index( lua_State* L ) {
   D* d = moon_checkobject( L, 1, "D" );
   size_t n = 0;
   char const* key = luaL_checklstring( L, 2, &n );
-#define S "x"
-  if( n == sizeof( S )-1 && memcmp( key, S, n ) == 0 )
-#undef S
+  if( 0 == strcmp( key, "x" ) )
     lua_pushinteger( L, d->x );
-#define S "y"
-  else if( n == sizeof( S )-1 && memcmp( key, S, n ) == 0 )
-#undef S
+  else if( 0 == strcmp( key, "y" ) )
     lua_pushinteger( L, d->y );
   else
     lua_pushnil( L );
@@ -232,13 +211,9 @@ static int D_newindex( lua_State* L ) {
   D* d = moon_checkobject( L, 1, "D" );
   size_t n = 0;
   char const* key = luaL_checklstring( L, 2, &n );
-#define S "x"
-  if( n == sizeof( S )-1 && memcmp( key, S, n ) == 0 )
-#undef S
+  if( 0 == strcmp( key, "x" ) )
     d->x = (int)moon_checkint( L, 3, INT_MIN, INT_MAX );
-#define S "y"
-  else if( n == sizeof( S )-1 && memcmp( key, S, n ) == 0 )
-#undef S
+  else if( 0 == strcmp( key, "y" ) )
     d->y = (int)moon_checkint( L, 3, INT_MIN, INT_MAX );
   return 0;
 }
@@ -376,11 +351,10 @@ int luaopen_objex( lua_State* L ) {
   lua_pushinteger( L, 2 );
   moon_defobject( L, "C", sizeof( C ), C_methods, 2 );
   moon_defobject( L, "D", sizeof( D ), D_methods, 0 );
-  lua_newtable( L );
 #if LUA_VERSION_NUM < 502
-  luaL_register( L, NULL, objex_funcs );
+  luaL_register( L, "objex", objex_funcs );
 #else
-  luaL_setfuncs( L, objex_funcs, 0 );
+  luaL_newlib( L, objex_funcs );
 #endif
   return 1;
 }
