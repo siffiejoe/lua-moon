@@ -113,15 +113,6 @@
 #define moon_getcache       MOON_CONCAT( MOON_PREFIX, _getcache )
 
 
-/* the type used to collect all necessary information to define an
- * object */
-typedef struct {
-  char const* metatable_name;
-  size_t userdata_size;
-  luaL_Reg const* methods;
-} moon_object_type;
-
-
 /* all objects defined via moon_defobject share a common header of the
  * following type: */
 typedef struct {
@@ -138,20 +129,21 @@ typedef struct {
 
 
 /* additional Lua API functions in this toolkit */
-MOON_API void moon_defobject( lua_State* L,
-                              moon_object_type const* t, int nup );
-MOON_API void* moon_newobject( lua_State* L, char const* name,
+MOON_API void moon_defobject( lua_State* L, char const* tname,
+                              size_t sz, luaL_Reg const* methods,
+                              int nup );
+MOON_API void* moon_newobject( lua_State* L, char const* tname,
                                void (*destructor)( void* ) );
-MOON_API void** moon_newpointer( lua_State* L, char const* name,
+MOON_API void** moon_newpointer( lua_State* L, char const* tname,
                                  void (*destructor)( void* ) );
-MOON_API void** moon_newfield( lua_State* L, char const* name,
+MOON_API void** moon_newfield( lua_State* L, char const* tname,
                                int idx, int (*isvalid)( void* p ),
                                void* p );
 MOON_API void moon_killobject( lua_State* L, int idx );
 MOON_API void* moon_checkobject( lua_State* L, int idx,
-                                 char const* name );
+                                 char const* tname );
 MOON_API void* moon_testobject( lua_State* L, int idx,
-                                char const* name );
+                                char const* tname );
 
 MOON_API lua_Integer moon_checkint( lua_State* L, int idx,
                                     lua_Integer low,

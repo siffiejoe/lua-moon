@@ -63,30 +63,6 @@ A macro that has the same effect as `#_v`, but works outside of a
 macro substitution.
 
 
-####                      `moon_object_type`                      ####
-
-    typedef struct {
-      char const*       metatable_name;
-      size_t            userdata_size;
-      luaL_Reg const*   methods;
-    } moon_object_type;
-
-A struct for collecting all necessary information to define an object
-type (using `moon_defobject`).
-`metatable_name` is used to identify this object type (e.g. for
-`moon_checkobject`, or `moon_newobject`).
-`userdata_size` is passed to `lua_newuserdata` when constructing such
-an object. If it is zero, you may only create pointer objects (via
-`moon_newpointer` or `moon_newfield`).
-`methods` is the usual Lua function registration array. Functions with
-a name starting with two underscores are added to the metatable, while
-all other functions are added to table in the `__index` field. If the
-`methods` array contains an `__index` method _and_ non-metamethods
-(i.e. names not starting with `__`), a special function is registered
-that first looks in the index table and then calls the original
-`__index` method if necessary.
-
-
 ####                     `moon_object_header`                     ####
 
     typedef struct {
@@ -120,21 +96,25 @@ run.
 
     /*  [ -nup, +0, e ]  */
     void moon_defobject( lua_State* L,
-                         moon_object_type const* type,
+                         char const* metatable_name,
+                         size_t userdata_size,
+                         luaL_Reg const* methods,
                          int nup );
 
-This function creates a metatable for the objects described in the
-`moon_object_type` struct. All information is transferred to the
-metatable, so you can create the `moon_object_type` struct and the
-`luaL_Reg` arrays on the C stack. In case a metatable with the same
-name already exists, this function raises an error. If `nup` is
+This function creates a new metatable and registers the functions in
+the `luaL_Reg` array (functions starting with double underscores `__`
+go into the metatable, the rest goes into a table used by the
+`__index` metafield). In case a metatable with the same name already
+exists, this function raises an error. The `userdata_size` is stored
+in the metatable for `moon_newobject` -- use a size of 0 to prohibit
+use of `moon_newobject` (e.g. for incomplete types). If `nup` is
 non-zero, it pops those upvalues from the current Lua stack top and
-makes them available to all registered functions (metamethods _and_
-methods). In case the object type has an `__index` function _and_
+makes them available to all registered functions (metamethods *and*
+methods). In case the object type has an `__index` function *and*
 methods, the original `__index` function will be called with two extra
-upvalues at index 1 and 2, so your own upvalues start at index 3. A
-suitable `__gc` metamethod and a default `__tostring` metamethod are
-provided by this function.
+upvalues at index 1 and 2 when a matching method isn't available, so
+your own upvalues start at index 3. A `__gc` metamethod and a default
+`__tostring` metamethod are provided by this function.
 
 
 ####                       `moon_newobject`                       ####

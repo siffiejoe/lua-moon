@@ -351,21 +351,11 @@ int luaopen_objex( lua_State* L ) {
     { "printme", A_printme },
     { NULL, NULL }
   };
-  moon_object_type const A_type = {
-    "A",
-    sizeof( A ),
-    A_methods
-  };
   luaL_Reg const B_methods[] = {
     { "__index", B_index },
     { "__newindex", B_newindex },
     { "printme", B_printme },
     { NULL, NULL }
-  };
-  moon_object_type const B_type = {
-    "B",
-    sizeof( B ),
-    B_methods
   };
   luaL_Reg const C_methods[] = {
     { "__index", C_index },
@@ -374,28 +364,18 @@ int luaopen_objex( lua_State* L ) {
     { "close", C_close },
     { NULL, NULL }
   };
-  moon_object_type const C_type = {
-    "C",
-    sizeof( C ),
-    C_methods
-  };
   luaL_Reg const D_methods[] = {
     { "__index", D_index },
     { "__newindex", D_newindex },
     { "printme", D_printme },
     { NULL, NULL }
   };
-  moon_object_type const D_type = {
-    "D",
-    sizeof( D ),
-    D_methods
-  };
-  moon_defobject( L, &A_type, 0 );
-  moon_defobject( L, &B_type, 0 );
+  moon_defobject( L, "A", sizeof( A ), A_methods, 0 );
+  moon_defobject( L, "B", sizeof( B ), B_methods, 0 );
   lua_pushinteger( L, 1 );
   lua_pushinteger( L, 2 );
-  moon_defobject( L, &C_type, 2 );
-  moon_defobject( L, &D_type, 0 );
+  moon_defobject( L, "C", sizeof( C ), C_methods, 2 );
+  moon_defobject( L, "D", sizeof( D ), D_methods, 0 );
   lua_newtable( L );
 #if LUA_VERSION_NUM < 502
   luaL_register( L, NULL, objex_funcs );

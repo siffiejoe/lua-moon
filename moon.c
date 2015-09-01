@@ -198,24 +198,24 @@ static void moon_makeindex_( lua_State* L, luaL_Reg const methods[],
 }
 
 
-MOON_API void moon_defobject( lua_State* L,
-                              moon_object_type const* t,
+MOON_API void moon_defobject( lua_State* L, char const* tname,
+                              size_t sz, luaL_Reg const* methods,
                               int nups ) {
   int has_methods = 0;
   lua_CFunction index = 0;
   luaL_checkstack( L, 2*nups+4, "not enough stack space available" );
   /* we don't use luaL_newmetatable to make sure that we never have a
    * half-constructed metatable in the registry! */
-  luaL_getmetatable( L, t->metatable_name );
+  luaL_getmetatable( L, tname );
   if( !lua_isnil( L, -1 ) )
-    luaL_error( L, "type '%s' is already defined", t->metatable_name );
+    luaL_error( L, "type '%s' is already defined", tname );
   lua_pop( L, 1 );
   lua_newtable( L );
-  lua_pushstring( L, t->metatable_name );
+  lua_pushstring( L, tname );
   lua_pushcclosure( L, moon_object_default_tostring_, 1 );
   lua_setfield( L, -2, "__tostring" );
-  if( t->methods != NULL ) {
-    luaL_Reg const* l = t->methods;
+  if( methods != NULL ) {
+    luaL_Reg const* l = methods;
     int i = 0;
     for( ; l->func != NULL; ++l ) {
       if( l->name[ 0 ] == '_' && l->name[ 1 ] == '_' ) {
@@ -234,39 +234,39 @@ MOON_API void moon_defobject( lua_State* L,
     int i = 0;
     for( i = 0; i < nups; ++i )
       lua_pushvalue( L, -nups-1 );
-    moon_makeindex_( L, has_methods ? t->methods : NULL, index, nups );
+    moon_makeindex_( L, has_methods ? methods : NULL, index, nups );
     lua_setfield( L, -2, "__index" );
   }
   lua_pushboolean( L, 0 );
   lua_setfield( L, -2, "__metatable" );
-  lua_pushstring( L, t->metatable_name );
+  lua_pushstring( L, tname );
   lua_setfield( L, -2, "__name" );
   lua_pushcfunction( L, moon_object_default_gc_ );
   lua_setfield( L, -2, "__gc" );
   lua_pushinteger( L, MOON_VERSION );
   lua_setfield( L, -2, "moon_version" );
-  lua_pushinteger( L, (lua_Integer)t->userdata_size );
+  lua_pushinteger( L, (lua_Integer)sz );
   lua_setfield( L, -2, "moon_size" );
-  lua_setfield( L, LUA_REGISTRYINDEX, t->metatable_name );
+  lua_setfield( L, LUA_REGISTRYINDEX, tname );
   lua_pop( L, nups );
 }
 
 
 /* Pushes the metatable for the given type onto the Lua stack, and
  * makes sure that the given type is a moon object type. */
-static void moon_checkmetatable_( lua_State* L, char const* name ) {
-  luaL_getmetatable( L, name );
+static void moon_checkmetatable_( lua_State* L, char const* tname ) {
+  luaL_getmetatable( L, tname );
   if( !lua_istable( L, -1 ) )
-    luaL_error( L, "no metatable for type '%s' defined", name );
+    luaL_error( L, "no metatable for type '%s' defined", tname );
   lua_getfield( L, -1, "moon_version" );
   if( lua_tointeger( L, -1 ) != MOON_VERSION )
-    luaL_error( L, "'%s' is not a moon %d.%d object type", name,
+    luaL_error( L, "'%s' is not a moon %d.%d object type", tname,
                 MOON_VERSION_MAJOR, MOON_VERSION_MINOR );
   lua_pop( L, 1 );
 }
 
 
-MOON_API void* moon_newobject( lua_State* L, char const* name,
+MOON_API void* moon_newobject( lua_State* L, char const* tname,
                                void (*gc)( void* ) ) {
   moon_object_header* obj = NULL;
   size_t off1 = 0;
@@ -274,12 +274,12 @@ MOON_API void* moon_newobject( lua_State* L, char const* name,
                                MOON_OBJ_ALIGNMENT_ );
   size_t sz = 0;
   luaL_checkstack( L, 2, "not enough stack space available" );
-  moon_checkmetatable_( L, name );
+  moon_checkmetatable_( L, tname );
   lua_getfield( L, -1, "moon_size" );
   sz = lua_tointeger( L, -1 );
   lua_pop( L, 1 );
   if( sz == 0 )
-    luaL_error( L, "type '%s' is incomplete (size is 0)", name );
+    luaL_error( L, "type '%s' is incomplete (size is 0)", tname );
   if( gc != 0 ) {
     off1 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                           MOON_GCF_ALIGNMENT_ );
@@ -301,7 +301,7 @@ MOON_API void* moon_newobject( lua_State* L, char const* name,
 }
 
 
-MOON_API void** moon_newpointer( lua_State* L, char const* name,
+MOON_API void** moon_newpointer( lua_State* L, char const* tname,
                                  void (*gc)( void* ) ) {
   moon_object_header* obj = NULL;
   void** p = NULL;
@@ -309,7 +309,7 @@ MOON_API void** moon_newpointer( lua_State* L, char const* name,
   size_t off2 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                                MOON_PTR_ALIGNMENT_ );
   luaL_checkstack( L, 2, "not enough stack space available" );
-  moon_checkmetatable_( L, name );
+  moon_checkmetatable_( L, tname );
   if( gc != 0 ) {
     off1 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                           MOON_GCF_ALIGNMENT_ );
@@ -333,7 +333,7 @@ MOON_API void** moon_newpointer( lua_State* L, char const* name,
 }
 
 
-MOON_API void** moon_newfield( lua_State* L, char const* name,
+MOON_API void** moon_newfield( lua_State* L, char const* tname,
                                int idx, int (*isvalid)( void* ),
                                void* tagp ) {
   moon_object_header* obj = NULL;
@@ -362,7 +362,7 @@ MOON_API void** moon_newfield( lua_State* L, char const* name,
       lua_pop( L, 2 );
     }
   }
-  moon_checkmetatable_( L, name );
+  moon_checkmetatable_( L, tname );
   if( isvalid != 0 ) {
     off1 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                           MOON_VCK_ALIGNMENT_ );

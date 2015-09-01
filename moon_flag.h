@@ -125,12 +125,8 @@ static void MOON_FLAG_DEF( lua_State* L ) {
 #endif
     { NULL, NULL }
   };
-  moon_object_type const flag_type = {
-    MOON_FLAG_NAME,
-    sizeof( MOON_FLAG_TYPE ),
-    methods
-  };
-  moon_defobject( L, &flag_type, 0 );
+  moon_defobject( L, MOON_FLAG_NAME, sizeof( MOON_FLAG_TYPE ),
+                  methods, 0 );
 }
 
 
