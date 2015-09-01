@@ -78,7 +78,6 @@ static int A_index( lua_State* L ) {
       void** p = moon_newfield( L, "B", 1, type_b_check, &(a->tag) );
       /* The userdata stores a pointer to the `a->b` field. */
       *p = &(a->u.b);
-      lua_replace( L, -2 );
       lua_pushvalue( L, -1 );
       moon_setuvfield( L, 1, "b" );
     }
@@ -86,7 +85,6 @@ static int A_index( lua_State* L ) {
     if( moon_getuvfield( L, 1, "c" ) == LUA_TNIL ) {
       void** p = moon_newfield( L, "C", 1, type_c_check, &(a->tag) );
       *p = &(a->u.c);
-      lua_replace( L, -2 );
       lua_pushvalue( L, -1 );
       moon_setuvfield( L, 1, "c" );
     }
@@ -169,7 +167,6 @@ static int C_index( lua_State* L ) {
        * by the `moon_killobject` function. */
       void** p = moon_newfield( L, "D", 1, object_valid_check, &h->flags );
       *p = &(c->d);
-      lua_replace( L, -2 );
       lua_pushvalue( L, -1 );
       moon_setuvfield( L, 1, "d" );
     }

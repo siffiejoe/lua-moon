@@ -572,12 +572,16 @@ MOON_API int moon_getuvfield( lua_State* L, int i, char const* key ) {
 #else
   lua_getuservalue( L, i );
 #endif
-  if( lua_istable( L, -1 ) )
+  if( lua_istable( L, -1 ) ) {
+    int t = 0;
     lua_getfield( L, -1, key );
-  else
-    lua_pushnil( L );
-  lua_replace( L, -2 );
-  return lua_type( L, -1 );
+    lua_replace( L, -2 );
+    t = lua_type( L, -1 );
+    if( t != LUA_TNIL )
+      return t;
+  }
+  lua_pop( L, 1 );
+  return LUA_TNIL;
 }
 
 

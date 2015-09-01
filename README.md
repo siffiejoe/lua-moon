@@ -286,7 +286,7 @@ position `idx`.
 
 ####                       `moon_getuvfield`                      ####
 
-    /*  [ -0, +1, e ]  */
+    /*  [ -0, +(0|1), e ]  */
     int moon_getuvfield( lua_State* L,
                          int idx,
                          char const* key );
@@ -294,8 +294,9 @@ position `idx`.
 This function works similar to `luaL_getmetafield`, but it looks for
 `key` in the environment/uservalue table of the object at index `idx`,
 and pushes the corresponding value to the top of the stack. If there
-is no uservalue table or no such field, `nil` is pushed instead. The
-return value is the type of the pushed value.
+is no uservalue table or no such field, nothing is pushed and
+`LUA_TNIL` is returned. Otherwise, the return value is the type of the
+pushed value.
 
 
 ####                        `moon_getcache`                       ####
