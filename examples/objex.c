@@ -1,3 +1,27 @@
+/*
+ * Example code for userdata handling in the moon toolkit.
+ *
+ * The moon toolkits provides the following functions for handling
+ * userdata in an easy and safe way:
+ * -   moon_defobject
+ * -   moon_newobject
+ * -   moon_newpointer
+ * -   moon_newfield
+ * -   moon_killobject
+ * -   moon_checkobject
+ * -   moon_testobject
+ *
+ * Using those functions enables you to
+ * -   Create and register a new metatable for a C type in a single
+ *     function call, including methods and metamethods with upvalues.
+ * -   Have properties and methods for an object at the same time.
+ * -   Use C values and pointers to those values in a uniform way.
+ * -   Support multiple different ways to create/destroy a C type.
+ * -   Expose fields embedded in another object in a type-safe way.
+ * -   Bind tagged unions in a type-safe way.
+ * -   Define functions that release resources in a safe way before
+ *     the object becomes unreachable.
+ */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -34,8 +58,8 @@ typedef struct {
 
 
 /* Check functions to make sure that embedded userdata are still
- * valid. A change in the tagged union (A_switch) or a running
- * a cleanup function (C_close) can make embedded userdata invalid. */
+ * valid. A change in the tagged union (A_switch) or running a cleanup
+ * function (C_close) can make embedded userdata invalid. */
 static int type_b_check( void* p ) {
   int* tagp = p;
   int res = *tagp == TYPE_B;
