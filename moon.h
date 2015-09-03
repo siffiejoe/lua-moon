@@ -111,6 +111,8 @@
 #define moon_setuvfield     MOON_CONCAT( MOON_PREFIX, _setuvfield )
 #define moon_getuvfield     MOON_CONCAT( MOON_PREFIX, _getuvfield )
 #define moon_getcache       MOON_CONCAT( MOON_PREFIX, _getcache )
+#define moon_stack_         MOON_CONCAT( MOON_PREFIX, _stack_ )
+#define moon_stack_assert_  MOON_CONCAT( MOON_PREFIX, _stack_assert_ )
 
 
 /* all objects defined via moon_defobject share a common header of the
@@ -155,6 +157,10 @@ MOON_API int* moon_atexit( lua_State* L, lua_CFunction func );
 MOON_API int moon_getuvfield( lua_State* L, int i, char const* key );
 MOON_API void moon_setuvfield( lua_State* L, int i, char const* key );
 MOON_API void moon_getcache( lua_State* L, int index );
+MOON_API void moon_stack_( lua_State* L, char const* file, int line,
+                           char const* func );
+MOON_API void moon_stack_assert_( lua_State* L, char const* file,
+                                  int line, char const* func, ... );
 
 
 /* some debugging macros */
@@ -173,14 +179,6 @@ MOON_API void moon_getcache( lua_State* L, int index );
 #  else
 #    error preprocessor does not support variadic macros
 #  endif
-
-#  define moon_stack_          MOON_CONCAT( MOON_PREFIX, _stack_ )
-#  define moon_stack_assert_   MOON_CONCAT( MOON_PREFIX, _stack_assert_ )
-MOON_API void moon_stack_( lua_State* L, char const* file, int line,
-                           char const* func );
-MOON_API void moon_stack_assert_( lua_State* L, char const* file,
-                                  int line, char const* func, ... );
-
 #else
 #  define moon_stack( L )  ((void)(0))
 #  if (defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 199901L) || \
