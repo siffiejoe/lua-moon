@@ -10,6 +10,7 @@
  * -   moon_killobject
  * -   moon_checkobject
  * -   moon_testobject
+ * -   moon_defcast
  *
  * Using those functions enables you to
  * -   Create and register a new metatable for a C type in a single
@@ -21,6 +22,8 @@
  * -   Bind tagged unions in a type-safe way.
  * -   Define functions that release resources in a safe way before
  *     the object becomes unreachable.
+ * -   Use userdata polymorphically (use one method implementation for
+ *     multiple similar types).
  */
 #include <stdio.h>
 #include <string.h>
@@ -77,6 +80,18 @@ static int object_valid_check( void* p ) {
   int res = *flagp & MOON_OBJECT_IS_VALID;
   return res;
 }
+
+
+/* Types that are similar can share one method implementation, but a
+ * pointer to one type has to be transformed to a pointer to the other
+ * type. This is probably much more useful when binding C++ libraries
+ * with proper type hierarchies! */
+static void* C_to_D( void* p ) {
+  C* c = p;
+  printf( "casting C to D\n" );
+  return &(c->d);
+}
+
 
 
 /* The (meta-)methods are pretty straightforward. Just use
@@ -395,6 +410,9 @@ int luaopen_objex( lua_State* L ) {
     { "__index", C_index },
     { "__newindex", C_newindex },
     { "printme", C_printme },
+    /* A C object can be cast to a D object (see below), so C objects
+     * can use the methods of the D type! */
+    { "printmeD", D_printme },
     { "close", C_close },
     { NULL, NULL }
   };
@@ -412,6 +430,9 @@ int luaopen_objex( lua_State* L ) {
   lua_pushinteger( L, 2 );
   moon_defobject( L, "C", sizeof( C ), C_methods, 2 );
   moon_defobject( L, "D", sizeof( D ), D_methods, 0 );
+  /* Add a type cast from a C object to the embedded D object. The
+   * cast is executed automatically during moon_checkobject. */
+  moon_defcast( L, "C", "D", C_to_D );
 #if LUA_VERSION_NUM < 502
   luaL_register( L, "objex", objex_funcs );
 #else

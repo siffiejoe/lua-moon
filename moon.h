@@ -103,6 +103,7 @@
 #define moon_newpointer     MOON_CONCAT( MOON_PREFIX, _newpointer )
 #define moon_newfield       MOON_CONCAT( MOON_PREFIX, _newfield )
 #define moon_killobject     MOON_CONCAT( MOON_PREFIX, _killobject )
+#define moon_defcast        MOON_CONCAT( MOON_PREFIX, _defcast )
 #define moon_checkobject    MOON_CONCAT( MOON_PREFIX, _checkobject )
 #define moon_testobject     MOON_CONCAT( MOON_PREFIX, _testobject )
 #define moon_checkint       MOON_CONCAT( MOON_PREFIX, _checkint )
@@ -130,6 +131,10 @@ typedef struct {
 #define MOON_OBJECT_IS_POINTER    0x02u
 
 
+/* function pointer type for "casts" */
+typedef void* (*moon_object_cast)( void* );
+
+
 /* additional Lua API functions in this toolkit */
 MOON_API void moon_defobject( lua_State* L, char const* tname,
                               size_t sz, luaL_Reg const* methods,
@@ -142,6 +147,9 @@ MOON_API void** moon_newfield( lua_State* L, char const* tname,
                                int idx, int (*isvalid)( void* p ),
                                void* p );
 MOON_API void moon_killobject( lua_State* L, int idx );
+MOON_API void moon_defcast( lua_State* L, char const* tname1,
+                            char const* tname2,
+                            moon_object_cast cast );
 MOON_API void* moon_checkobject( lua_State* L, int idx,
                                  char const* tname );
 MOON_API void* moon_testobject( lua_State* L, int idx,

@@ -82,6 +82,13 @@ this header can be obtained by using plain `lua_touserdata` on a moon
 object.
 
 
+####                      `moon_object_cast`                      ####
+
+    typedef void* (*moon_object_cast)( void* );
+
+Function pointer type for conversion functions used by `moon_defcast`.
+
+
 ####       `MOON_OBJECT_IS_VALID`, `MOON_OBJECT_IS_POINTER`       ####
 
     #define MOON_OBJECT_IS_VALID    0x01
@@ -189,6 +196,22 @@ cleanup function from running again). This function can be used to
 reclaim resources before the object becomes unreachable.
 
 
+####                        `moon_defcast`                        ####
+
+    /*  [ -0, +0, v ]  */
+    void moon_defcast( lua_State* L,
+                       char const* tname1,
+                       char const* tname2,
+                       moon_object_cast cast );
+
+Registers the conversion function `cast` for converting userdata
+objects of type `tname1` to type `tname2`. The `cast` function is
+called automatically by `moon_checkobject( L, idx, tname2 )` when
+applied to an object of type `tname1`, so function implementations can
+be reused without extra work. The metatable `tname1` must already
+exist and belong to a moon object type (created via `moon_defobject`).
+
+
 ####                      `moon_checkobject`                      ####
 
     /*  [ -0, +0, v ]  */
@@ -200,7 +223,8 @@ This function ensures that the value stored at stack index `idx`
 
 1.  is a full userdata
 2.  is a moon object
-3.  has the metatable identified by `metatable_name`
+3.  has the metatable identified by `metatable_name` or has a
+    cast function to `metatable_name` registered
 4.  has the `MOON_OBJECT_IS_VALID` flag set
 5.  all `isvalid` functions return a non-zero value (for objects
     created via `moon_newfield`)
@@ -210,7 +234,8 @@ This function ensures that the value stored at stack index `idx`
 If any of those conditions are false, an error is raised. Otherwise
 this function returns a pointer to the object's memory (meaning the
 objects created via `moon_newpointer` and `moon_newfield` are
-dereferenced once).
+dereferenced once, and if necessary the registered cast function is
+called).
 
 
 ####                       `moon_testobject`                      ####
