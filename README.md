@@ -1,9 +1,11 @@
 #                 Moon -- A C Binding Toolkit for Lua                #
 
-This library provides some compatiblity functions/macros to work with
-the Lua C API of Lua 5.1, Lua 5.2, and Lua 5.3 in a uniform way. It
-also contains new API functions/macros to ease the binding of C
-libraries.
+This library provides new convenience functions for binding C types to
+Lua as userdata for Lua 5.1, Lua 5.2, and Lua 5.3. It supports objects
+with different lifetimes, polymorphic type checking, type-safe binding
+of tagged unions or embedded structs, properties and methods at the
+same time, and uniform handling of pointers to objects using a simple
+and small set of API functions.
 
 
 ##                        Using this Library                        ##
