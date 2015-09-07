@@ -29,7 +29,7 @@
 
 /* platform independent attributes for exporting/importing functions
  * from shared libraries */
-#if !defined( _WIN32 ) && !defined( __CYGWIN__ )
+#if defined( _WIN32 ) && !defined( __CYGWIN__ )
 #  ifndef MOON_LOCAL
 #    define MOON_LOCAL
 #  endif
