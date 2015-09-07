@@ -11,8 +11,6 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <ctype.h>
-#include <lua.h>
-#include <lauxlib.h>
 #include "moon.h"
 
 /* don't compile it again if it's already included via moon.h */

@@ -13,8 +13,14 @@
  */
 
 #include <stddef.h>
+#if defined( __cplusplus ) && !defined( MOON_LUA_CPP )
+extern "C" {
+#endif
 #include <lua.h>
 #include <lauxlib.h>
+#if defined( __cplusplus ) && !defined( MOON_LUA_CPP )
+}
+#endif
 
 
 #define MOON_VERSION (200)
