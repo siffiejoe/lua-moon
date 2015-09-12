@@ -68,13 +68,13 @@ static MOON_FLAG_TYPE MOON_FLAG_GET( lua_State* L, int index ) {
 static int MOON_FLAG_ADD( lua_State* L ) {
   MOON_FLAG_TYPE* a = (MOON_FLAG_TYPE*)moon_checkobject( L, 1, MOON_FLAG_NAME );
   MOON_FLAG_TYPE* b = (MOON_FLAG_TYPE*)moon_checkobject( L, 2, MOON_FLAG_NAME );
-  MOON_FLAG_NEW( L, *a | *b );
+  MOON_FLAG_NEW( L, (MOON_FLAG_TYPE)(*a | *b) );
   return 1;
 }
 static int MOON_FLAG_SUB( lua_State* L ) {
   MOON_FLAG_TYPE* a = (MOON_FLAG_TYPE*)moon_checkobject( L, 1, MOON_FLAG_NAME );
   MOON_FLAG_TYPE* b = (MOON_FLAG_TYPE*)moon_checkobject( L, 2, MOON_FLAG_NAME );
-  MOON_FLAG_NEW( L, *a & ~(*b) );
+  MOON_FLAG_NEW( L, (MOON_FLAG_TYPE)(*a & ~(*b)) );
   return 1;
 }
 static int MOON_FLAG_CALL( lua_State* L ) {
@@ -87,12 +87,12 @@ static int MOON_FLAG_CALL( lua_State* L ) {
 static int MOON_FLAG_AND( lua_State* L ) {
   MOON_FLAG_TYPE* a = (MOON_FLAG_TYPE*)moon_checkobject( L, 1, MOON_FLAG_NAME );
   MOON_FLAG_TYPE* b = (MOON_FLAG_TYPE*)moon_checkobject( L, 2, MOON_FLAG_NAME );
-  MOON_FLAG_NEW( L, *a & *b );
+  MOON_FLAG_NEW( L, (MOON_FLAG_TYPE)(*a & *b) );
   return 1;
 }
 static int MOON_FLAG_NOT( lua_State* L ) {
   MOON_FLAG_TYPE* a = (MOON_FLAG_TYPE*)moon_checkobject( L, 1, MOON_FLAG_NAME );
-  MOON_FLAG_NEW( L, ~*a );
+  MOON_FLAG_NEW( L, (MOON_FLAG_TYPE)(~*a) );
   return 1;
 }
 #endif
