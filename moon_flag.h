@@ -39,7 +39,7 @@
 
 static void MOON_FLAG_NEW( lua_State* L, MOON_FLAG_TYPE v ) {
 #ifdef MOON_FLAG_USECACHE
-  luaL_checkstack( L, 5, "not enough stack space available" );
+  luaL_checkstack( L, 5, MOON_STRINGIFY( MOON_FLAG_NEW ) );
   luaL_getmetatable( L, MOON_FLAG_NAME );
   if( !lua_istable( L, -1 ) )
     luaL_error( L, "no metatable for type '%s' defined", MOON_FLAG_NAME );

@@ -210,7 +210,7 @@ MOON_API void moon_defobject( lua_State* L, char const* tname,
   int has_methods = 0;
   lua_CFunction index = 0;
   moon_check_tname_( L, tname );
-  luaL_checkstack( L, 2*nups+4, "not enough stack space available" );
+  luaL_checkstack( L, 2*nups+4, "moon_defobject" );
   /* we don't use luaL_newmetatable to make sure that we never have a
    * half-constructed metatable in the registry! */
   luaL_getmetatable( L, tname );
@@ -281,7 +281,7 @@ MOON_API void* moon_newobject( lua_State* L, char const* tname,
   size_t off2 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                                MOON_OBJ_ALIGNMENT_ );
   size_t sz = 0;
-  luaL_checkstack( L, 2, "not enough stack space available" );
+  luaL_checkstack( L, 2, "moon_newobject" );
   moon_check_metatable_( L, tname );
   lua_getfield( L, -1, "__moon_size" );
   sz = lua_tointeger( L, -1 );
@@ -317,7 +317,7 @@ MOON_API void** moon_newpointer( lua_State* L, char const* tname,
   size_t off1 = 0;
   size_t off2 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                                MOON_PTR_ALIGNMENT_ );
-  luaL_checkstack( L, 2, "not enough stack space available" );
+  luaL_checkstack( L, 2, "moon_newpointer" );
   moon_check_metatable_( L, tname );
   if( gc != 0 ) {
     off1 = MOON_ROUNDTO_( sizeof( moon_object_header ),
@@ -352,7 +352,7 @@ MOON_API void** moon_newfield( lua_State* L, char const* tname,
   size_t off1 = 0;
   size_t off2 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                                MOON_PTR_ALIGNMENT_ );
-  luaL_checkstack( L, 3, "not enough stack space available" );
+  luaL_checkstack( L, 3, "moon_newfield" );
   if( idx != 0 ) {
     moon_object_header* h = (moon_object_header*)lua_touserdata( L, idx );
     idx = moon_absindex( L, idx );
@@ -412,7 +412,7 @@ MOON_API void** moon_newfield( lua_State* L, char const* tname,
 
 MOON_API void moon_killobject( lua_State* L, int idx ) {
   moon_object_header* h = (moon_object_header*)lua_touserdata( L, idx );
-  luaL_checkstack( L, 2, "not enough stack space available" );
+  luaL_checkstack( L, 2, "moon_killobject" );
   if( h == NULL || !lua_getmetatable( L, idx ) )
     moon_type_error_version_( L, idx );
   lua_getfield( L, -1, "__moon_version" );
@@ -426,7 +426,7 @@ MOON_API void moon_killobject( lua_State* L, int idx ) {
 MOON_API void moon_defcast( lua_State* L, char const* tname1,
                             char const* tname2,
                             moon_object_cast cast ) {
-  luaL_checkstack( L, 2, "not enough stack space available" );
+  luaL_checkstack( L, 2, "moon_defcast" );
   moon_check_metatable_( L, tname1 );
   moon_check_tname_( L, tname2 );
   lua_pushcfunction( L, (lua_CFunction)cast );
@@ -453,7 +453,7 @@ MOON_API void* moon_checkobject( lua_State* L, int idx,
   int res = 0;
   moon_object_cast cast = 0;
   moon_check_tname_( L, tname );
-  luaL_checkstack( L, 3, "not enough stack space available" );
+  luaL_checkstack( L, 3, "moon_checkobject" );
   idx = moon_absindex( L, idx );
   if( h == NULL )
     moon_type_error_( L, idx, tname, luaL_typename( L, idx ) );
@@ -511,7 +511,7 @@ MOON_API void* moon_testobject( lua_State* L, int idx,
   int res = 0;
   moon_object_cast cast = 0;
   moon_check_tname_( L, tname );
-  luaL_checkstack( L, 2, "not enough stack space available" );
+  luaL_checkstack( L, 2, "moon_testobject" );
   if( h == NULL || !lua_getmetatable( L, idx ) )
     return NULL;
   lua_getfield( L, -1, "__moon_version" );
@@ -584,7 +584,7 @@ MOON_API lua_Integer moon_optint( lua_State* L, int idx,
 
 MOON_API int* moon_atexit( lua_State* L, lua_CFunction func ) {
   int* flag = NULL;
-  luaL_checkstack( L, 3, "not enough stack space available" );
+  luaL_checkstack( L, 3, "moon_atexit" );
   flag = (int*)lua_newuserdata( L, sizeof( int ) );
   *flag = 0;
   /* setmetatable( flag, { __gc = func } ) */
@@ -601,7 +601,7 @@ MOON_API int* moon_atexit( lua_State* L, lua_CFunction func ) {
 
 
 MOON_API void moon_setuvfield( lua_State* L, int i, char const* key ) {
-  luaL_checkstack( L, 2, "not enough stack space available" );
+  luaL_checkstack( L, 2, "moon_setuvfield" );
 #if LUA_VERSION_NUM < 502
   lua_getfenv( L, i );
 #else
@@ -616,7 +616,7 @@ MOON_API void moon_setuvfield( lua_State* L, int i, char const* key ) {
 
 
 MOON_API int moon_getuvfield( lua_State* L, int i, char const* key ) {
-  luaL_checkstack( L, 2, "not enough stack space available" );
+  luaL_checkstack( L, 2, "moon_getuvfield" );
 #if LUA_VERSION_NUM < 502
   lua_getfenv( L, i );
 #else
@@ -637,7 +637,7 @@ MOON_API int moon_getuvfield( lua_State* L, int i, char const* key ) {
 
 MOON_API void moon_getcache( lua_State* L, int index ) {
   static char xyz = 0; /* used as a unique key */
-  luaL_checkstack( L, 3, "not enough stack space available" );
+  luaL_checkstack( L, 3, "moon_getcache" );
   index = moon_absindex( L, index );
   lua_pushlightuserdata( L, &xyz );
   lua_rawget( L, index );
