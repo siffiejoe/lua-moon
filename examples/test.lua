@@ -2,6 +2,7 @@
 
 local objex = require( "objex" )
 local flgex = require( "flgex" )
+local stkex = require( "stkex" )
 
 
 print( _VERSION )
@@ -80,5 +81,22 @@ do
   print( "same but not identical:", flags == flgex.THREE, flags, flgex.THREE )
   print( "better error message for mismatched types:" )
   print( pcall( function() local wrong = flgex.ONE + flgex.THREE end ) )
+end
+
+
+do
+  print( ("="):rep( 70 ) )
+  print( "[ stkex test ]" )
+  print( pcall( stkex.somefunc, "hello", 123, {} ) )
+  print()
+  print( pcall( stkex.somefunc, "hello", "world", {} ) )
+  print()
+  print( pcall( stkex.somefunc, {} ) )
+  print()
+  print( pcall( stkex.somefunc, true ) )
+  print()
+  print( pcall( stkex.somefunc, "hel\001lo\n", nil, {} ) )
+  print()
+  print( pcall( stkex.somefunc, nil, nil, nil ) )
 end
 

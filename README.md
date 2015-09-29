@@ -347,11 +347,27 @@ separate caches per enum type), etc.
                             ... );
 
 This "function" is implemented as a macro that evaluates to `void` if
-`NDEBUG` is defined. If it is not, it tries to match the type names
-given as arguments to the values at the top of the Lua stack. Every
-mismatch is reported on `stderr`, and finally the whole Lua stack is
-dumped to `stderr` using the `moon_stack` function below, and an error
-is raised. You can use `"*"` as wildcard type name.
+`NDEBUG` is defined. If it is not, it tries to match the type
+specifications (strings) given as arguments to the values at the top
+of the Lua stack. Every mismatch is reported on `stderr`, and finally
+the whole Lua stack is dumped to `stderr` using the `moon_stack`
+function below, and an error is raised. Currently the following type
+specifications are supported:
+
+*   `"n"`: nil
+*   `"b"`: boolean
+*   `"l"`: lightuserdata
+*   `"i"`: integer (equivalent to `"d"` before Lua 5.3)
+*   `"d"`: number (think `double`)
+*   `"s"`: string
+*   `"t"`: table
+*   `"f"`: function
+*   `"u"`: userdata
+*   `"c"`: coroutine
+*   `"a"`: any (non-nil) value
+
+You can combine the single letter options to express alternatives, so
+e.g. `"tf"` means: table or function.
 
 
 ####                         `moon_stack`                         ####

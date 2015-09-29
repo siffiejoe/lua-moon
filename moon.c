@@ -656,6 +656,81 @@ MOON_API void moon_getcache( lua_State* L, int index ) {
 }
 
 
+static int moon_check_type_( lua_State* L, int idx, char const* spec ) {
+  int t = lua_type( L, idx );
+  while( *spec != '\0' ) {
+    switch( *spec ) {
+      case 'n':
+        if( t == LUA_TNIL )
+          return 1;
+        break;
+      case 'b':
+        if( t == LUA_TBOOLEAN )
+          return 1;
+        break;
+      case 'l':
+        if( t == LUA_TLIGHTUSERDATA )
+          return 1;
+        break;
+      case 'i':
+        if( t == LUA_TNUMBER
+#if LUA_VERSION_NUM >= 503
+            && lua_isinteger( L, idx )
+#endif
+            ) return 1;
+        break;
+      case 'd':
+        if( t == LUA_TNUMBER )
+          return 1;
+        break;
+      case 's':
+        if( t == LUA_TSTRING )
+          return 1;
+        break;
+      case 't':
+        if( t == LUA_TTABLE )
+          return 1;
+        break;
+      case 'f':
+        if( t == LUA_TFUNCTION )
+          return 1;
+        break;
+      case 'u':
+        if( t == LUA_TUSERDATA )
+          return 1;
+        break;
+      case 'c':
+        if( t == LUA_TTHREAD )
+          return 1;
+        break;
+      case 'a':
+        if( t != LUA_TNIL )
+          return 1;
+        break;
+    }
+    ++spec;
+  }
+  return 0;
+}
+
+static char const* moon_type2spec_( int t ) {
+  switch( t ) {
+    case LUA_TNONE:
+    case LUA_TNIL: return "n";
+    case LUA_TBOOLEAN: return "b";
+    case LUA_TLIGHTUSERDATA: return "l";
+    case LUA_TNUMBER: return "d";
+    case LUA_TSTRING: return "s";
+    case LUA_TTABLE: return "t";
+    case LUA_TFUNCTION: return "f";
+    case LUA_TUSERDATA: return "u";
+    case LUA_TTHREAD: return "c";
+    default:
+      return "?";
+  }
+}
+
+
 #define MOON_SEP_ \
   "######################################################################"
 
@@ -685,16 +760,15 @@ MOON_API void moon_stack_assert_( lua_State* L, char const* file,
   for( i = 0; i < skip; ++i )
     arg = va_arg( ap, char const* );
   for( i = top+skip-nargs+1; i <= top; ++i ) {
-    char const* tn = NULL;
     arg = va_arg( ap, char const* );
-    if( !(arg[ 0 ] == '*' && arg[ 1 ] == '\0') &&
-        arg != (tn=luaL_typename( L, i )) &&
-        0 != strcmp( arg, tn ) ) {
+    if( !moon_check_type_( L, i, arg ) ) {
       if( !have_error )
         fputs( MOON_SEP_ "\n", stderr );
       fprintf( stderr, "Lua stack assertion failed:"
-               " '%s' at slot %d (expected '%s')!\n",
-               tn, i, arg );
+               " '%s' at slot %d (expected %s'%s')!\n",
+               moon_type2spec_( lua_type( L, i ) ), i,
+               (arg[ 0 ] != '\0' && arg[ 1 ] == 0) ? "" : "one of ",
+               arg );
       have_error = 1;
     }
   }
