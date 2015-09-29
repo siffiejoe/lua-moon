@@ -9,6 +9,13 @@ print( _VERSION )
 do
   print( ("="):rep( 70 ) )
   print( "[ objex test ]" )
+  local m = objex.getAmethods()
+  print( type( m ) )
+  if type( m ) == "table" then
+    for k,v in pairs( m ) do
+      print( k, v )
+    end
+  end
   local a = objex.newA()
   print( a, a.tag )
   a:printme()
@@ -62,6 +69,13 @@ collectgarbage()
 do
   print( ("="):rep( 70 ) )
   print( "[ flgex test ]" )
+  local m = flgex.getXmethods()
+  print( type( m ) )
+  if type( m ) == "table" then
+    for k,v in pairs( m ) do
+      print( k, v )
+    end
+  end
   local flags = flgex.NULL + flgex.ONE + flgex.TWO
   print( flags )
 --[[

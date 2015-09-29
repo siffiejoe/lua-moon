@@ -108,6 +108,7 @@ extern "C" {
 #define moon_newobject      MOON_CONCAT( MOON_PREFIX, _newobject )
 #define moon_newpointer     MOON_CONCAT( MOON_PREFIX, _newpointer )
 #define moon_newfield       MOON_CONCAT( MOON_PREFIX, _newfield )
+#define moon_getmethods     MOON_CONCAT( MOON_PREFIX, _getmethods )
 #define moon_killobject     MOON_CONCAT( MOON_PREFIX, _killobject )
 #define moon_defcast        MOON_CONCAT( MOON_PREFIX, _defcast )
 #define moon_checkobject    MOON_CONCAT( MOON_PREFIX, _checkobject )
@@ -152,6 +153,7 @@ MOON_API void** moon_newpointer( lua_State* L, char const* tname,
 MOON_API void** moon_newfield( lua_State* L, char const* tname,
                                int idx, int (*isvalid)( void* p ),
                                void* p );
+MOON_API int moon_getmethods( lua_State* L, char const* tname );
 MOON_API void moon_killobject( lua_State* L, int idx );
 MOON_API void moon_defcast( lua_State* L, char const* tname1,
                             char const* tname2,

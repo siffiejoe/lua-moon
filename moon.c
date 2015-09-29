@@ -410,6 +410,28 @@ MOON_API void** moon_newfield( lua_State* L, char const* tname,
 }
 
 
+MOON_API int moon_getmethods( lua_State* L, char const* tname ) {
+  int t = 0;
+  luaL_checkstack( L, 2, "moon_getmethods" );
+  moon_check_metatable_( L, tname );
+  lua_getfield( L, -1, "__index" );
+  lua_replace( L, -2 );
+  t = lua_type( L, -1 );
+  if( t == LUA_TTABLE )
+    return t;
+  else if( t == LUA_TFUNCTION ) {
+    if( lua_tocfunction( L, -1 ) == moon_index_dispatch_ &&
+        lua_getupvalue( L, -1, 1 ) != NULL ) {
+      lua_replace( L, -2 );
+      if( lua_type( L, -1 ) == LUA_TTABLE )
+        return LUA_TTABLE;
+    }
+  }
+  lua_pop( L, 1 );
+  return LUA_TNIL;
+}
+
+
 MOON_API void moon_killobject( lua_State* L, int idx ) {
   moon_object_header* h = (moon_object_header*)lua_touserdata( L, idx );
   luaL_checkstack( L, 2, "moon_killobject" );

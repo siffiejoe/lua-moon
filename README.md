@@ -186,9 +186,22 @@ that also has an `isvalid` check registered, all checks are performed
 in the order from parent object(s) to child object.
 
 
+####                       `moon_getmethods`                      ####
+
+    /*  [ -0, +(0|1), e ]  */
+    int moon_getmethods( lua_State* L,
+                         char const* tname );
+
+If the metatable identified by `tname` has methods registered, pushes
+the methods table and returns `LUA_TTABLE`. Otherwise nothing is
+pushed and `LUA_TNIL` is returned. This function only works for moon
+objects and raises an error if the metatable `tname` wasn't registered
+via `moon_defobject`.
+
+
 ####                       `moon_killobject`                      ####
 
-    /*  [ -0, +0, v ]  */
+    /*  [ -0, +0, e ]  */
     void moon_killobject( lua_State* L,
                           int idx );
 
@@ -200,7 +213,7 @@ reclaim resources before the object becomes unreachable.
 
 ####                        `moon_defcast`                        ####
 
-    /*  [ -0, +0, v ]  */
+    /*  [ -0, +0, e ]  */
     void moon_defcast( lua_State* L,
                        char const* tname1,
                        char const* tname2,

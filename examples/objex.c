@@ -283,6 +283,13 @@ static int D_printme( lua_State* L ) {
 }
 
 
+static int objex_getAmethods( lua_State* L ) {
+  if( moon_getmethods( L, "A" ) == LUA_TNIL )
+    lua_pushnil( L );
+  return 1;
+}
+
+
 static int objex_newA( lua_State* L ) {
   /* Create a new A object. The memory is allocated inside the
    * userdata when using `moon_newobject`. Here no cleanup function
@@ -383,6 +390,7 @@ static int objex_makeD( lua_State* L ) {
 
 int luaopen_objex( lua_State* L ) {
   luaL_Reg const objex_funcs[] = {
+    { "getAmethods", objex_getAmethods },
     { "newA", objex_newA },
     { "newB", objex_newB },
     { "newC", objex_newC },
