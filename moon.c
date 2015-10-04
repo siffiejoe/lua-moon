@@ -278,6 +278,10 @@ MOON_API void* moon_newobject( lua_State* L, char const* tname,
                                void (*gc)( void* ) ) {
   moon_object_header* obj = NULL;
   size_t off1 = 0;
+#ifdef _MSC_VER
+#  pragma warning(push)
+#  pragma warning(disable: 4116)
+#endif
   size_t off2 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                                MOON_OBJ_ALIGNMENT_ );
   size_t sz = 0;
@@ -293,6 +297,9 @@ MOON_API void* moon_newobject( lua_State* L, char const* tname,
                           MOON_GCF_ALIGNMENT_ );
     off2 = MOON_ROUNDTO_( off1 + sizeof( moon_object_cleanup_ ),
                           MOON_OBJ_ALIGNMENT_ );
+#ifdef _MSC_VER
+#  pragma warning(pop)
+#endif
   }
   obj = (moon_object_header*)lua_newuserdata( L, sz+off2 );
   if( off1 > 0 ) {
@@ -315,6 +322,10 @@ MOON_API void** moon_newpointer( lua_State* L, char const* tname,
   moon_object_header* obj = NULL;
   void** p = NULL;
   size_t off1 = 0;
+#ifdef _MSC_VER
+#  pragma warning(push)
+#  pragma warning(disable: 4116)
+#endif
   size_t off2 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                                MOON_PTR_ALIGNMENT_ );
   luaL_checkstack( L, 2, "moon_newpointer" );
@@ -324,6 +335,9 @@ MOON_API void** moon_newpointer( lua_State* L, char const* tname,
                           MOON_GCF_ALIGNMENT_ );
     off2 = MOON_ROUNDTO_( off1 + sizeof( moon_object_cleanup_ ),
                           MOON_PTR_ALIGNMENT_ );
+#ifdef _MSC_VER
+#  pragma warning(pop)
+#endif
   }
   obj = (moon_object_header*)lua_newuserdata( L, sizeof( void* )+off2 );
   p = (void**)MOON_PTR_( obj, off2 );
@@ -350,6 +364,10 @@ MOON_API void** moon_newfield( lua_State* L, char const* tname,
   moon_object_vcheck_* nextcheck = NULL;
   void** p = NULL;
   size_t off1 = 0;
+#ifdef _MSC_VER
+#  pragma warning(push)
+#  pragma warning(disable: 4116)
+#endif
   size_t off2 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                                MOON_PTR_ALIGNMENT_ );
   luaL_checkstack( L, 3, "moon_newfield" );
@@ -379,6 +397,9 @@ MOON_API void** moon_newfield( lua_State* L, char const* tname,
                           MOON_VCK_ALIGNMENT_ );
     off2 = MOON_ROUNDTO_( off1 + sizeof( moon_object_vcheck_ ),
                           MOON_PTR_ALIGNMENT_ );
+#ifdef _MSC_VER
+#  pragma warning(pop)
+#endif
   }
   obj = (moon_object_header*)lua_newuserdata( L, sizeof( void* )+off2 );
   p = (void**)MOON_PTR_( obj, off2 );
