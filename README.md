@@ -255,7 +255,7 @@ called).
 
 ####                       `moon_testobject`                      ####
 
-    /*  [ -0, +0, v ]  */
+    /*  [ -0, +0, e ]  */
     void* moon_testobject( lua_State* L,
                            int idx,
                            char const* metatable_name );
@@ -420,7 +420,7 @@ macro file. The following parameters are recognized:
 *   `MOON_FLAG_NOBITOPS` (optional): If this macro is defined, no
     metamethods for bitwise operations are created. This includes
     `__add`, `__sub`, and `__call` metamethods. If you do this, you
-    should think about using strings and `moon_checkoption` instead of
+    should think about using strings and `luaL_checkoption` instead of
     userdata for representing your flags in Lua.
 *   `MOON_FLAG_NORELOPS` (optional): If this macro is defined, the
     `__eq` metamethod is not created.
@@ -438,7 +438,7 @@ disabled via one of the parameter macros above:
     void moon_flag_def_SUFFIX( lua_State* L );
     /*  [ -0, +1, e ]  */
     void moon_flag_new_SUFFIX( lua_State* L, TYPE value );
-    /*  [ -0, +0, e ]  */
+    /*  [ -0, +0, v ]  */
     TYPE moon_flag_get_SUFFIX( lua_State* L, int idx );
 
     int moon_flag_add_SUFFIX( lua_State* L );
