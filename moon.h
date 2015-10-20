@@ -20,6 +20,14 @@ extern "C" {
 #include <lauxlib.h>
 #if defined( __cplusplus ) && !defined( MOON_LUA_CPP )
 }
+#  define MOON_LLINKAGE_BEGIN extern "C" {
+#  define MOON_LLINKAGE_END   }
+#endif
+
+/* use default linkage for functions to pass to Lua */
+#ifndef MOON_LLINKAGE_BEGIN
+#  define MOON_LLINKAGE_BEGIN
+#  define MOON_LLINKAGE_END
 #endif
 
 

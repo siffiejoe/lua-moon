@@ -109,6 +109,7 @@ static int moon_type_error_version_( lua_State* L, int i ) {
 
 /* Default implementation of a __tostring metamethod for moon objects
  * which displays the type name and memory address. */
+MOON_LLINKAGE_BEGIN
 static int moon_object_default_tostring_( lua_State* L ) {
   void* ptr = lua_touserdata( L, 1 );
   char const* name = lua_tostring( L, lua_upvalueindex( 1 ) );
@@ -118,6 +119,7 @@ static int moon_object_default_tostring_( lua_State* L ) {
   lua_pushfstring( L, "[%s]: %p", name, ptr );
   return 1;
 }
+MOON_LLINKAGE_END
 
 
 /* Run the destructor and mark the object as invalid/destroyed. */
@@ -138,15 +140,18 @@ static void moon_object_run_destructor_( moon_object_header* h ) {
 /* Common __gc metamethod for all moon objects. The actual finalizer
  * function is stored in the userdata to support different lifetimes.
  */
+MOON_LLINKAGE_BEGIN
 static int moon_object_default_gc_( lua_State* L ) {
   moon_object_header* h = (moon_object_header*)lua_touserdata( L, 1 );
   moon_object_run_destructor_( h );
   return 0;
 }
+MOON_LLINKAGE_END
 
 
 /* Check the methods table for a given key and then (if unsuccessful)
  * call the registered C function for looking up properties. */
+MOON_LLINKAGE_BEGIN
 static int moon_index_dispatch_( lua_State* L ) {
   lua_CFunction pindex;
   /* try method table first */
@@ -158,6 +163,7 @@ static int moon_index_dispatch_( lua_State* L ) {
   pindex = lua_tocfunction( L, lua_upvalueindex( 2 ) );
   return pindex( L );
 }
+MOON_LLINKAGE_END
 
 
 /* Depending on the availability of a methods table and/or a C

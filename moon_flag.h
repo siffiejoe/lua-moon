@@ -65,6 +65,7 @@ static MOON_FLAG_TYPE MOON_FLAG_GET( lua_State* L, int index ) {
 }
 
 #ifndef MOON_FLAG_NOBITOPS
+MOON_LLINKAGE_BEGIN
 static int MOON_FLAG_ADD( lua_State* L ) {
   MOON_FLAG_TYPE* a = (MOON_FLAG_TYPE*)moon_checkobject( L, 1, MOON_FLAG_NAME );
   MOON_FLAG_TYPE* b = (MOON_FLAG_TYPE*)moon_checkobject( L, 2, MOON_FLAG_NAME );
@@ -96,15 +97,18 @@ static int MOON_FLAG_NOT( lua_State* L ) {
   return 1;
 }
 #endif
+MOON_LLINKAGE_END
 #endif
 
 #ifndef MOON_FLAG_NORELOPS
+MOON_LLINKAGE_BEGIN
 static int MOON_FLAG_EQ( lua_State* L ) {
   MOON_FLAG_TYPE* a = (MOON_FLAG_TYPE*)moon_checkobject( L, 1, MOON_FLAG_NAME );
   MOON_FLAG_TYPE* b = (MOON_FLAG_TYPE*)moon_checkobject( L, 2, MOON_FLAG_NAME );
   lua_pushboolean( L, MOON_FLAG_EQMETHOD( *a, *b ) );
   return 1;
 }
+MOON_LLINKAGE_END
 #endif
 
 static void MOON_FLAG_DEF( lua_State* L ) {
