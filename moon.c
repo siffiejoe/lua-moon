@@ -39,9 +39,6 @@ typedef struct moon_object_vcheck_ {
 } moon_object_vcheck_;
 
 
-typedef void (*moon_object_cleanup_)( void* );
-
-
 /* For keeping memory consumption as low as possible multiple C
  * values might be stored side-by-side in the same memory block, and
  * we have to figure out the alignment to use for thos values. */
@@ -80,7 +77,7 @@ typedef union {
 
 #define MOON_OBJ_ALIGNMENT_ MOON_ALIGNOF_( moon_object_alignment_u_ )
 #define MOON_PTR_ALIGNMENT_ MOON_ALIGNOF_( void* )
-#define MOON_GCF_ALIGNMENT_ MOON_ALIGNOF_( moon_object_cleanup_ )
+#define MOON_GCF_ALIGNMENT_ MOON_ALIGNOF_( moon_object_destructor )
 #define MOON_VCK_ALIGNMENT_ MOON_ALIGNOF_( moon_object_vcheck_ )
 #define MOON_ROUNDTO_( _s, _a ) ((((_s)+(_a)-1)/(_a))*(_a))
 #define MOON_PTR_( _p, _o ) ((void*)(((char*)(_p))+(_o)))
@@ -126,8 +123,8 @@ MOON_LLINKAGE_END
 static void moon_object_run_destructor_( moon_object_header* h ) {
   if( h->cleanup_offset > 0 && (h->flags & MOON_OBJECT_IS_VALID) ) {
     void* p = MOON_PTR_( h, h->object_offset );
-    moon_object_cleanup_* gc = NULL;
-    gc = (moon_object_cleanup_*)MOON_PTR_( h, h->cleanup_offset );
+    moon_object_destructor* gc = NULL;
+    gc = (moon_object_destructor*)MOON_PTR_( h, h->cleanup_offset );
     if( h->flags & MOON_OBJECT_IS_POINTER )
       p = *((void**)p);
     if( *gc != 0 && p != NULL )
@@ -301,7 +298,7 @@ MOON_API void* moon_newobject( lua_State* L, char const* tname,
   if( gc != 0 ) {
     off1 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                           MOON_GCF_ALIGNMENT_ );
-    off2 = MOON_ROUNDTO_( off1 + sizeof( moon_object_cleanup_ ),
+    off2 = MOON_ROUNDTO_( off1 + sizeof( moon_object_destructor ),
                           MOON_OBJ_ALIGNMENT_ );
 #ifdef _MSC_VER
 #  pragma warning(pop)
@@ -309,8 +306,8 @@ MOON_API void* moon_newobject( lua_State* L, char const* tname,
   }
   obj = (moon_object_header*)lua_newuserdata( L, sz+off2 );
   if( off1 > 0 ) {
-    moon_object_cleanup_* cl = NULL;
-    cl = (moon_object_cleanup_*)MOON_PTR_( obj, off1 );
+    moon_object_destructor* cl = NULL;
+    cl = (moon_object_destructor*)MOON_PTR_( obj, off1 );
     *cl = gc;
   }
   obj->cleanup_offset = off1;
@@ -339,7 +336,7 @@ MOON_API void** moon_newpointer( lua_State* L, char const* tname,
   if( gc != 0 ) {
     off1 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                           MOON_GCF_ALIGNMENT_ );
-    off2 = MOON_ROUNDTO_( off1 + sizeof( moon_object_cleanup_ ),
+    off2 = MOON_ROUNDTO_( off1 + sizeof( moon_object_destructor ),
                           MOON_PTR_ALIGNMENT_ );
 #ifdef _MSC_VER
 #  pragma warning(pop)
@@ -349,8 +346,8 @@ MOON_API void** moon_newpointer( lua_State* L, char const* tname,
   p = (void**)MOON_PTR_( obj, off2 );
   *p = NULL;
   if( off1 > 0 ) {
-    moon_object_cleanup_* cl = NULL;
-    cl = (moon_object_cleanup_*)MOON_PTR_( obj, off1 );
+    moon_object_destructor* cl = NULL;
+    cl = (moon_object_destructor*)MOON_PTR_( obj, off1 );
     *cl = gc;
   }
   obj->cleanup_offset = off1;

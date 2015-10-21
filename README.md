@@ -91,6 +91,13 @@ object.
 Function pointer type for conversion functions used by `moon_defcast`.
 
 
+####                   `moon_object_destructor`                   ####
+
+    typedef void (*moon_object_destructor)( void* );
+
+Function pointer type for cleanup functions of moon objects.
+
+
 ####       `MOON_OBJECT_IS_VALID`, `MOON_OBJECT_IS_POINTER`       ####
 
     #define MOON_OBJECT_IS_VALID    0x01
@@ -133,7 +140,7 @@ your own upvalues start at index 3. A `__gc` metamethod and a default
     /*  [ -0, +1, e ]  */
     void* moon_newobject( lua_State* L,
                           char const* metatable_name,
-                          void (*destructor)( void* ) );
+                          moon_object_destructor destructor );
 
 This function allocates a userdata, sets a metatable, and stores the
 cleanup function for later use by the `__gc` metamethod or the
@@ -148,7 +155,7 @@ to the payload (*not* the `moon_object_header` structure) is returned.
     /*  [ -0, +1, e ]  */
     void** moon_newpointer( lua_State* L,
                             char const* metatable_name,
-                            void (*destructor)( void* ) );
+                            moon_object_destructor destructor );
 
 This function allocates a userdata suitable for storing a pointer,
 sets a metatable, and stores the cleanup function for later use by the

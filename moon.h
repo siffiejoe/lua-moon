@@ -149,15 +149,18 @@ typedef struct {
 /* function pointer type for "casts" */
 typedef void* (*moon_object_cast)( void* );
 
+/* function pointer type for destructors */
+typedef void (*moon_object_destructor)( void* );
+
 
 /* additional Lua API functions in this toolkit */
 MOON_API void moon_defobject( lua_State* L, char const* tname,
                               size_t sz, luaL_Reg const* methods,
                               int nup );
 MOON_API void* moon_newobject( lua_State* L, char const* tname,
-                               void (*destructor)( void* ) );
+                               moon_object_destructor destructor );
 MOON_API void** moon_newpointer( lua_State* L, char const* tname,
-                                 void (*destructor)( void* ) );
+                                 moon_object_destructor destructor );
 MOON_API void** moon_newfield( lua_State* L, char const* tname,
                                int idx, int (*isvalid)( void* p ),
                                void* p );
