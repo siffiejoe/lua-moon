@@ -251,7 +251,7 @@ This function ensures that the value stored at stack index `idx`
 5.  all `isvalid` functions return a non-zero value (for objects
     created via `moon_newfield`)
 6.  contains a non-`NULL` pointer value (for objects created via
-    `moon_newpointer` or `moon_newfield`.
+    `moon_newpointer` or `moon_newfield`).
 
 If any of those conditions are false, an error is raised. Otherwise
 this function returns a pointer to the object's memory (meaning the
