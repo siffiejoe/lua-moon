@@ -17,6 +17,7 @@
  * use other feature macros */
 #if defined( unix ) || defined( __unix ) || defined( __unix__ ) || \
     defined( __TOS_AIX__ ) || defined( _SYSTYPE_BSD ) || \
+    (defined( __APPLE__ ) && defined( __MACH__ )) || \
     defined( HAVE_UNISTD_H )
 
 #include <unistd.h>
@@ -46,13 +47,17 @@ static char const* const moon_dlfix_lib_names[] = {
   MOON_DLFIX_LIBNAME,
 #endif /* custom Lua library name */
   "liblua5.3.so",       /* Lua 5.3, Debian/Ubuntu naming */
+  "liblua5.3.so.0",     /*   same with common SONAME */
   "liblua53.so",
   "liblua5.2.so",       /* Lua 5.2, Debian/Ubuntu naming */
+  "liblua5.2.so.0",     /*   same with common SONAME */
   "liblua52.so",
   "liblua.so",          /* default name from Lua's makefile */
   "liblua5.1.so",       /* Lua 5.1, Debian/Ubuntu naming */
+  "liblua5.1.so.0",     /*   same with common SONAME */
   "liblua51.so",
   "libluajit-5.1.so",   /* LuaJIT default name */
+  "libluajit-5.1.so.2", /*   common SONAME */
 };
 
 #define MOON_DLFIX() \
