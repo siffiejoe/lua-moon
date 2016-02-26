@@ -63,6 +63,12 @@ static char const* const moon_dlfix_lib_names[] = {
 #define MOON_DLFIX() \
   do { \
     unsigned i = 0; \
+    void* mainp = dlopen( NULL, RTLD_LAZY ); \
+    if( mainp ) { \
+      if( dlsym( mainp, "lua_gettop" ) ) \
+        i = -1; /* skip loop below */ \
+      dlclose( mainp ); \
+    } \
     for( ; i < sizeof( moon_dlfix_lib_names )/sizeof( *moon_dlfix_lib_names ); ++i ) { \
       void* dl = dlopen( moon_dlfix_lib_names[ i ], RTLD_LAZY|RTLD_GLOBAL|RTLD_NOLOAD ); \
       if( dl ) { \
