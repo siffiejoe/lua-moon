@@ -9,7 +9,7 @@
 int plugin_main( void ) {
   lua_State* L = luaL_newstate();
   luaL_openlibs( L );
-#if 1
+#if 0
   MOON_DLFIX();
 #endif
   if( luaL_dofile( L, "test.lua" ) ) {

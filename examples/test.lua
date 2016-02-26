@@ -1,5 +1,7 @@
 #!/usr/bin/lua
 
+require( "sofix" )
+
 local objex = require( "objex" )
 local flgex = require( "flgex" )
 local stkex = require( "stkex" )
