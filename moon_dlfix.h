@@ -75,17 +75,13 @@ static char const* const moon_dlfix_lib_names[] = {
  * find the Lua shared object.
  */
 #if defined( __linux__ ) && defined( _GNU_SOURCE )
-#include <features.h>
-#if defined( __GLIBC__ ) && __GLIBC__ >= 2 && \
-    __GLIBC_MINOR__ >= 3
 #define MOON_DLFIX_DL_ITERATE_PHDR
 #include <link.h>
-#endif
-#endif
+#endif /* Linux with dl_iterate_phdr() function */
 #if defined( __FreeBSD__ ) || defined( __DragonFly__ )
-#include <link.h>
 #define MOON_DLFIX_DL_ITERATE_PHDR
-#endif
+#include <link.h>
+#endif /* FreeBSD with dl_iterate_phdr() function */
 
 
 #if !defined( MOON_DLFIX_FIND ) && \
@@ -134,7 +130,7 @@ static int moon_dlfix_find( void ) {
   return dl_iterate_phdr( moon_dlfix_cb, &found );
 }
 #define MOON_DLFIX_FIND()  (moon_dlfix_find())
-#endif
+#endif /* has dl_iterate_phdr() function() */
 
 #if !defined( MOON_DLFIX_FIND )
 /* dummy definition (always returns failure) */
