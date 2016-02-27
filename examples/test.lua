@@ -1,5 +1,6 @@
 #!/usr/bin/lua
 
+package.cpath = "./?.so;../?.so;.\\?.dll;..\\?.dll"
 require( "sofix" )
 
 local objex = require( "objex" )

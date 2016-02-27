@@ -493,6 +493,16 @@ If the builtin heuristics fail to find the shared Lua library you can
 specify the library name/path by defining this macro.
 
 
+####                    `MOON_DLFIX_LIBPREFIX`                    ####
+
+For some OSes *all* loaded shared libraries is searched for an ELF
+object that contains the Lua symbols. Since this procedure also finds
+shared objects that have the Lua library as a dependency, the library
+name is checked for a known prefix to make sure that only the actual
+Lua library is exported. The default is `"liblua"`, but you can change
+it by defining this macro.
+
+
 ##                              Contact                             ##
 
 Philipp Janda, siffiejoe(a)gmx.net
@@ -505,7 +515,7 @@ Comments and feedback are always welcome.
 `moon` is *copyrighted free software* distributed under the Tiny
 license. The full license text follows:
 
-    moon (c) 2013-2015 Philipp Janda
+    moon (c) 2013-2016 Philipp Janda
 
     You may do anything with this work that copyright law would normally
     restrict, so long as you retain the above notice(s) and this license

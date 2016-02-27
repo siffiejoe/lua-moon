@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "moon_dlfix.h"
 
 /* declaration of lua_State as an opaque type */

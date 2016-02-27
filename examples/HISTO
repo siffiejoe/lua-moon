@@ -32,4 +32,4 @@ x gcc -Wall -Wextra -I"$INC" -I.. -fpic -shared -Os -o plugin.so plugin.c $LIB -
 
 exit 0
 
-rm -f objex.so flgex.so stkex.so sofix.so dlfixex plugin.so
+rm -f objex.so flgex.so stkex.so sofix.o sofix.so dlfixex plugin.so
