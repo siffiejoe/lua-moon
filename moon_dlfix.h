@@ -78,7 +78,8 @@ static char const* const moon_dlfix_lib_names[] = {
 #define MOON_DLFIX_DL_ITERATE_PHDR
 #include <link.h>
 #endif /* Linux with dl_iterate_phdr() function */
-#if defined( __FreeBSD__ ) || defined( __DragonFly__ )
+#if defined( __FreeBSD__ ) || defined( __DragonFly__ ) || \
+    defined( __NetBSD__ )
 #define MOON_DLFIX_DL_ITERATE_PHDR
 #include <link.h>
 #endif /* FreeBSD with dl_iterate_phdr() function */
@@ -130,7 +131,7 @@ static int moon_dlfix_find( void ) {
   return dl_iterate_phdr( moon_dlfix_cb, &found );
 }
 #define MOON_DLFIX_FIND()  (moon_dlfix_find())
-#endif /* has dl_iterate_phdr() function() */
+#endif /* has dl_iterate_phdr() function */
 
 #if !defined( MOON_DLFIX_FIND )
 /* dummy definition (always returns failure) */
