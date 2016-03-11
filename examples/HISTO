@@ -4,20 +4,8 @@ LUAV=5.1
 #LUAV=5.2
 #LUAV=5.3
 
-case "$LUAV" in
-  5.1)
-    INC=/usr/include/lua5.1
-    LIB=-llua5.1
-    ;;
-  5.2)
-    INC=/usr/include/lua5.2
-    LIB=-llua5.2
-    ;;
-  *)
-    INC=/home/siffiejoe/.self/programs/lua5.3
-    LIB="-L/home/siffiejoe/.self/programs/lua5.3 -llua5.3"
-    ;;
-esac;
+INC=/usr/include/lua"$LUAV"
+LIB=-llua"$LUAV"
 
 x() {
   echo "#" "$@"; "$@"

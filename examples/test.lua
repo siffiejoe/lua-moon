@@ -24,9 +24,11 @@ do
   a:printme()
   local b = a.b
   print( a.b, b, a.c, b.f )
-  b:printme()
+  b.f = 1.0
+  print( pcall( function() b:printme() end ) )
+  a:printme()
   a:switch()
-  print( pcall( b.printme, b ) )
+  print( pcall( function() b:printme() end ) )
   print( a, a.tag )
   a:printme()
   local c = a.c

@@ -162,9 +162,12 @@ static int A_printme( lua_State* L ) {
 static int B_index( lua_State* L ) {
   B* b = moon_checkobject( L, 1, "B" );
   char const* key = luaL_checkstring( L, 2 );
-  if( 0 == strcmp( key, "f" ) )
+  printf( "__index B (uv1: %d, uv2: %d)\n",
+          (int)lua_tointeger( L, lua_upvalueindex( 3 ) ),
+          (int)lua_tointeger( L, lua_upvalueindex( 4 ) ) );
+  if( 0 == strcmp( key, "f" ) ) {
     lua_pushnumber( L, b->f );
-  else
+  } else
     lua_pushnil( L );
   return 1;
 }
@@ -173,6 +176,9 @@ static int B_index( lua_State* L ) {
 static int B_newindex( lua_State* L ) {
   B* b = moon_checkobject( L, 1, "B" );
   char const* key = luaL_checkstring( L, 2 );
+  printf( "__newindex B (uv1: %d, uv2: %d)\n",
+          (int)lua_tointeger( L, lua_upvalueindex( 1 ) ),
+          (int)lua_tointeger( L, lua_upvalueindex( 2 ) ) );
   if( 0 == strcmp( key, "f" ) )
     b->f = luaL_checknumber( L, 3 );
   return 0;
@@ -194,8 +200,8 @@ static int C_index( lua_State* L ) {
   moon_object_header* h = lua_touserdata( L, 1 );
   char const* key = luaL_checkstring( L, 2 );
   /* The C object type has been/will be registered with two additional
-   * upvalues. Since the type has a custom `__index` metamethod *and*
-   * normal methods, those upvalues can be found at index 3 and 4. */
+   * upvalues. Those upvalues can be found at index 3 and 4, because
+   * the first two upvalues are used internally for dispatching. */
   printf( "__index C (uv1: %d, uv2: %d)\n",
           (int)lua_tointeger( L, lua_upvalueindex( 3 ) ),
           (int)lua_tointeger( L, lua_upvalueindex( 4 ) ) );
@@ -411,7 +417,9 @@ int luaopen_objex( lua_State* L ) {
   luaL_Reg const B_methods[] = {
     { "__index", B_index },
     { "__newindex", B_newindex },
+#if 0
     { "printme", B_printme },
+#endif
     { NULL, NULL }
   };
   luaL_Reg const C_methods[] = {
@@ -433,7 +441,10 @@ int luaopen_objex( lua_State* L ) {
   /* All object types must be defined once (this creates the
    * metatables): */
   moon_defobject( L, "A", sizeof( A ), A_methods, 0 );
-  moon_defobject( L, "B", sizeof( B ), B_methods, 0 );
+  (void)B_printme; /* avoid warning */
+  lua_pushinteger( L, 1 );
+  lua_pushinteger( L, 2 );
+  moon_defobject( L, "B", sizeof( B ), B_methods, 2 );
   lua_pushinteger( L, 1 );
   lua_pushinteger( L, 2 );
   moon_defobject( L, "C", sizeof( C ), C_methods, 2 );

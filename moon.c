@@ -191,7 +191,17 @@ static void moon_makeindex_( lua_State* L, luaL_Reg const methods[],
       lua_pop( L, nups-1 );
     }
   } else if( pindex ) {
-    lua_pushcclosure( L, pindex, nups );
+    int lnups = nups;
+    if( nups > 0 ) {
+      /* create two dummy upvalues, so that __index is *always* called
+       * with your own upvalues starting at index 3 */
+      lua_pushnil( L );
+      lua_pushnil( L );
+      lua_insert( L, -nups-2 );
+      lua_insert( L, -nups-2 );
+      lnups += 2;
+    }
+    lua_pushcclosure( L, pindex, lnups );
   } else {
     lua_pop( L, nups );
     lua_pushnil( L );

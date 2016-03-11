@@ -128,11 +128,11 @@ metatable for the `moon_newobject` function -- use a size of 0 to
 prohibit use of `moon_newobject` (e.g. for incomplete types). If `nup`
 is non-zero, it pops those upvalues from the current Lua stack top and
 makes them available to all registered functions (metamethods *and*
-methods). In case the object type has an `__index` function *and*
-methods, the original `__index` function will be called with two extra
-upvalues at index 1 and 2 when a matching method isn't available, so
-your own upvalues start at index 3. A `__gc` metamethod and a default
-`__tostring` metamethod are provided by this function.
+methods). In case the object type has an `__index` function, your own
+upvalues *for this function* will start at index 3 because the
+upvalues 1 and 2 are reserved for the dispatch implementation. A
+`__gc` metamethod and a default `__tostring` metamethod are provided
+by `moon_defobject` as well.
 
 
 ####                       `moon_newobject`                       ####
