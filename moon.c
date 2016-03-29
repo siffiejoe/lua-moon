@@ -64,13 +64,25 @@ typedef union {
 /* newer C versions have it in stdalign.h */
 #    include <stdalign.h>
 #    define MOON_ALIGNOF_( _t ) alignof( _t )
+#  elif defined( __cplusplus )
+/* Same as below, but MSVC++ has problems with that code, so we use a
+ * template instead of a type-as-expression. */
+template< typename T >
+struct moon_alignof_struct_ {
+  char _1;
+  T _2;
+};
+#    define MOON_ALIGNOF_( _t ) \
+  (offsetof( moon_alignof_struct_< _t >, _2 ) > sizeof( _t ) \
+   ? sizeof( _t ) \
+   : offsetof( moon_alignof_struct_< _t >, _2 ))
 #  else
 /* Calculate the alignment ourselves. This may give smaller values
  * than using `sizeof( _t )` which is also a portable solution. */
 #    define MOON_ALIGNOF_( _t ) \
-  ((offsetof( struct { char _1; _t _2; }, _2 )) > sizeof( _t ) \
+  (offsetof( struct { char _1; _t _2; }, _2 ) > sizeof( _t ) \
    ? sizeof( _t ) \
-   : (offsetof( struct { char _1; _t _2; }, _2 )))
+   : offsetof( struct { char _1; _t _2; }, _2 ))
 #  endif
 #endif
 
