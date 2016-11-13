@@ -128,11 +128,8 @@ metatable for the `moon_newobject` function -- use a size of 0 to
 prohibit use of `moon_newobject` (e.g. for incomplete types). If `nup`
 is non-zero, it pops those upvalues from the current Lua stack top and
 makes them available to all registered functions (metamethods *and*
-methods). In case the object type has an `__index` function, your own
-upvalues *for this function* will start at index 3 because the
-upvalues 1 and 2 are reserved for the dispatch implementation. A
-`__gc` metamethod and a default `__tostring` metamethod are provided
-by `moon_defobject` as well.
+methods). A `__gc` metamethod and a default `__tostring` metamethod
+are provided by `moon_defobject` as well.
 
 
 ####                       `moon_newobject`                       ####
@@ -406,6 +403,30 @@ Compatiblity macro for `lua_absindex`, but also available on Lua 5.1
 as a function.
 
 
+####                         `moon_derive`                        ####
+
+    int moon_derive( lua_State* L );
+
+A `lua_CFunction` that may be registered as part of your module and
+allows Lua code to subclass a moon object. When called it expects two
+strings as arguments: a new (non-existing) type name and an old
+(existing) type name of a moon object type. It sets up the new type
+name as an alias to the old type but with a different methods table.
+The new methods table (initially a copy of the methods of the old
+type) is returned.
+
+
+####                        `moon_downcast`                       ####
+
+    int moon_downcast( lua_State* L );
+
+A `lua_CFunction` that may be registered as part of your module and
+allows Lua code to change the type of a moon object to a type created
+via `moon_derive`. It is typically used in constructors of derived
+types, and expects a moon object and the new type name as arguments.
+If successful, the object (with its metatable replaced) is returned.
+
+
 ###                          `moon_flag.h`                         ###
 
 `moon_flag.h` is a macro file, that can be included multiple times and
@@ -418,12 +439,12 @@ Parameters are passed as macros before including the macro file. Any
 arguments and all internal macros are `#undef`ed before leaving the
 macro file. The following parameters are recognized:
 
-*   `MOON_FLAG_NAME`: A metatable name used for defining a userdata
-    type.
-*   `MOON_FLAG_TYPE`: The underlying enum/flag type that is handled by
-    the custom userdata.
-*   `MOON_FLAG_SUFFIX`: All defined functions have this suffix (and
-    the `moon_flag_` prefix) to make them unique.
+*   `MOON_FLAG_NAME` (required): A metatable name used for defining a
+    userdata type.
+*   `MOON_FLAG_TYPE` (required): The underlying enum/flag type that is
+    handled by the custom userdata.
+*   `MOON_FLAG_SUFFIX` (required): All defined functions have this
+    suffix (and the `moon_flag_` prefix) to make them unique.
 *   `MOON_FLAG_NOBITOPS` (optional): If this macro is defined, no
     metamethods for bitwise operations are created. This includes
     `__add`, `__sub`, and `__call` metamethods. If you do this, you
@@ -460,7 +481,7 @@ The last six are metamethods and not supposed to be called from C.
 registers all metamethods. `moon_flag_new_SUFFIX` pushes a userdata
 representing the given value to the top of the Lua stack, while
 `moon_flag_get_SUFFIX` returns the corresponding enum value from a
-userdata on the Lua stack.
+userdata on the Lua stack (or raises an error).
 
 
 ###                         `moon_dlfix.h`                         ###

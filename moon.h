@@ -1,4 +1,4 @@
-/* Copyright 2013-2015 Philipp Janda <siffiejoe@gmx.net>
+/* Copyright 2013-2016 Philipp Janda <siffiejoe@gmx.net>
  *
  * You may do anything with this work that copyright law would normally
  * restrict, so long as you retain the above notice(s) and this license
@@ -31,7 +31,7 @@ extern "C" {
 #endif
 
 
-#define MOON_VERSION (200)
+#define MOON_VERSION (300)
 #define MOON_VERSION_MAJOR (MOON_VERSION/100)
 #define MOON_VERSION_MINOR (MOON_VERSION-(MOON_VERSION_MAJOR*100))
 
@@ -121,6 +121,8 @@ extern "C" {
 #define moon_defcast        MOON_CONCAT( MOON_PREFIX, _defcast )
 #define moon_checkobject    MOON_CONCAT( MOON_PREFIX, _checkobject )
 #define moon_testobject     MOON_CONCAT( MOON_PREFIX, _testobject )
+#define moon_derive         MOON_CONCAT( MOON_PREFIX, _derive )
+#define moon_downcast       MOON_CONCAT( MOON_PREFIX, _downcast )
 #define moon_checkint       MOON_CONCAT( MOON_PREFIX, _checkint )
 #define moon_optint         MOON_CONCAT( MOON_PREFIX, _optint )
 #define moon_atexit         MOON_CONCAT( MOON_PREFIX, _atexit )
@@ -173,6 +175,11 @@ MOON_API void* moon_checkobject( lua_State* L, int idx,
                                  char const* tname );
 MOON_API void* moon_testobject( lua_State* L, int idx,
                                 char const* tname );
+
+MOON_LLINKAGE_BEGIN
+MOON_API int moon_derive( lua_State* L );
+MOON_API int moon_downcast( lua_State* L );
+MOON_LLINKAGE_END
 
 MOON_API lua_Integer moon_checkint( lua_State* L, int idx,
                                     lua_Integer low,

@@ -1,4 +1,4 @@
-/* Copyright 2013-2015 Philipp Janda <siffiejoe@gmx.net>
+/* Copyright 2013-2016 Philipp Janda <siffiejoe@gmx.net>
  *
  * You may do anything with this work that copyright law would normally
  * restrict, so long as you retain the above notice(s) and this license
@@ -162,17 +162,44 @@ MOON_LLINKAGE_END
  * call the registered C function for looking up properties. */
 MOON_LLINKAGE_BEGIN
 static int moon_index_dispatch_( lua_State* L ) {
-  lua_CFunction pindex;
   /* try method table first */
   lua_pushvalue( L, 2 ); /* duplicate key */
   lua_rawget( L, lua_upvalueindex( 1 ) );
   if( !lua_isnil( L, -1 ) )
     return 1;
   lua_pop( L, 1 );
-  pindex = lua_tocfunction( L, lua_upvalueindex( 2 ) );
-  return pindex( L );
+  /* now call function */
+  lua_pushvalue( L, lua_upvalueindex( 2 ) );
+  lua_insert( L, 1 );
+  lua_call( L, 2, 1 );
+  return 1;
 }
 MOON_LLINKAGE_END
+
+
+static lua_CFunction moon_getf_( lua_State* L, char const* name,
+                                 lua_CFunction def ) {
+  lua_CFunction f = 0;
+  lua_pushliteral( L, "__moon" );
+  lua_rawget( L, LUA_REGISTRYINDEX );
+  if( lua_type( L, -1 ) != LUA_TTABLE ) {
+    lua_pop( L, 1 );
+    lua_newtable( L );
+    lua_pushliteral( L, "__moon" );
+    lua_pushvalue( L, -2 );
+    lua_rawset( L, LUA_REGISTRYINDEX );
+  }
+  lua_getfield( L, -1, name );
+  f = lua_tocfunction( L, -1 );
+  lua_pop( L, 1 );
+  if( !f ) {
+    f = def;
+    lua_pushcfunction( L, def );
+    lua_setfield( L, -2, name );
+  }
+  lua_pop( L, 1 );
+  return f;
+}
 
 
 /* Depending on the availability of a methods table and/or a C
@@ -183,8 +210,8 @@ static void moon_makeindex_( lua_State* L, luaL_Reg const methods[],
   if( methods != NULL ) {
     lua_newtable( L );
     for( ; methods->func; ++methods ) {
-      int i = 0;
       if( methods->name[ 0 ] != '_' || methods->name[ 1 ] != '_' ) {
+        int i = 0;
         for( i = 0; i < nups; ++i )
           lua_pushvalue( L, -nups-1 );
         lua_pushcclosure( L, methods->func, nups );
@@ -192,28 +219,20 @@ static void moon_makeindex_( lua_State* L, luaL_Reg const methods[],
       }
     }
     if( pindex ) {
-      lua_pushcfunction( L, pindex );
-      if( nups > 0 ) {
-        lua_insert( L, -nups-2 );
-        lua_insert( L, -nups-2 );
-      }
-      lua_pushcclosure( L, moon_index_dispatch_, 2+nups );
-    } else if( nups > 0 ) {
+      lua_CFunction dispatch = moon_getf_( L, "dispatch",
+                                           moon_index_dispatch_ );
+      int i = 0;
+      for( i = 0; i < nups; ++i )
+        lua_pushvalue( L, -nups-1 );
+      lua_pushcclosure( L, pindex, nups ); /* table, func */
+      lua_pushcclosure( L, dispatch, 2 );
+    }
+    if( nups > 0 ) {
       lua_replace( L, -nups-1 );
       lua_pop( L, nups-1 );
     }
   } else if( pindex ) {
-    int lnups = nups;
-    if( nups > 0 ) {
-      /* create two dummy upvalues, so that __index is *always* called
-       * with your own upvalues starting at index 3 */
-      lua_pushnil( L );
-      lua_pushnil( L );
-      lua_insert( L, -nups-2 );
-      lua_insert( L, -nups-2 );
-      lnups += 2;
-    }
-    lua_pushcclosure( L, pindex, lnups );
+    lua_pushcclosure( L, pindex, nups );
   } else {
     lua_pop( L, nups );
     lua_pushnil( L );
@@ -224,7 +243,7 @@ static void moon_makeindex_( lua_State* L, luaL_Reg const methods[],
 /* Type names used by the moon toolkit must not start with a double
  * underscore, because they might be used as keys in the metatable. */
 static void moon_check_tname_( lua_State* L, char const* tname ) {
-  if( tname == NULL || (tname[ 0 ] == '_' && tname[ 1 ] == '_') )
+  if( tname == NULL || tname[ 0 ] == '_' )
     luaL_error( L, "invalid type name: '%s'", tname ? tname : "NULL" );
 }
 
@@ -284,11 +303,9 @@ MOON_API void moon_defobject( lua_State* L, char const* tname,
 }
 
 
-/* Pushes the metatable for the given type onto the Lua stack, and
- * makes sure that the given type is a moon object type. */
+/* Verify that the value at the stack top is the metatable for a moon
+ * object type. */
 static void moon_check_metatable_( lua_State* L, char const* tname ) {
-  moon_check_tname_( L, tname );
-  luaL_getmetatable( L, tname );
   if( !lua_istable( L, -1 ) )
     luaL_error( L, "no metatable for type '%s' defined", tname );
   lua_getfield( L, -1, "__moon_version" );
@@ -296,6 +313,15 @@ static void moon_check_metatable_( lua_State* L, char const* tname ) {
     luaL_error( L, "'%s' is not a moon %d.%d object type", tname,
                 MOON_VERSION_MAJOR, MOON_VERSION_MINOR );
   lua_pop( L, 1 );
+}
+
+
+/* Pushes the metatable for the given type onto the Lua stack, and
+ * makes sure that the given type is a moon object type. */
+static void moon_push_metatable_( lua_State* L, char const* tname ) {
+  moon_check_tname_( L, tname );
+  luaL_getmetatable( L, tname );
+  moon_check_metatable_( L, tname );
 }
 
 
@@ -311,7 +337,7 @@ MOON_API void* moon_newobject( lua_State* L, char const* tname,
                                MOON_OBJ_ALIGNMENT_ );
   size_t sz = 0;
   luaL_checkstack( L, 2, "moon_newobject" );
-  moon_check_metatable_( L, tname );
+  moon_push_metatable_( L, tname );
   lua_getfield( L, -1, "__moon_size" );
   sz = lua_tointeger( L, -1 );
   lua_pop( L, 1 );
@@ -354,7 +380,7 @@ MOON_API void** moon_newpointer( lua_State* L, char const* tname,
   size_t off2 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                                MOON_PTR_ALIGNMENT_ );
   luaL_checkstack( L, 2, "moon_newpointer" );
-  moon_check_metatable_( L, tname );
+  moon_push_metatable_( L, tname );
   if( gc != 0 ) {
     off1 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                           MOON_GCF_ALIGNMENT_ );
@@ -416,7 +442,7 @@ MOON_API void** moon_newfield( lua_State* L, char const* tname,
       lua_pop( L, 2 );
     }
   }
-  moon_check_metatable_( L, tname );
+  moon_push_metatable_( L, tname );
   if( isvalid != 0 ) {
     off1 = MOON_ROUNDTO_( sizeof( moon_object_header ),
                           MOON_VCK_ALIGNMENT_ );
@@ -459,14 +485,16 @@ MOON_API void** moon_newfield( lua_State* L, char const* tname,
 MOON_API int moon_getmethods( lua_State* L, char const* tname ) {
   int t = 0;
   luaL_checkstack( L, 2, "moon_getmethods" );
-  moon_check_metatable_( L, tname );
+  moon_push_metatable_( L, tname );
   lua_getfield( L, -1, "__index" );
   lua_replace( L, -2 );
   t = lua_type( L, -1 );
   if( t == LUA_TTABLE )
     return t;
   else if( t == LUA_TFUNCTION ) {
-    if( lua_tocfunction( L, -1 ) == moon_index_dispatch_ &&
+    lua_CFunction dispatch = moon_getf_( L, "dispatch",
+                                         moon_index_dispatch_ );
+    if( lua_tocfunction( L, -1 ) == dispatch &&
         lua_getupvalue( L, -1, 1 ) != NULL ) {
       lua_replace( L, -2 );
       if( lua_type( L, -1 ) == LUA_TTABLE )
@@ -495,7 +523,7 @@ MOON_API void moon_defcast( lua_State* L, char const* tname1,
                             char const* tname2,
                             moon_object_cast cast ) {
   luaL_checkstack( L, 2, "moon_defcast" );
-  moon_check_metatable_( L, tname1 );
+  moon_push_metatable_( L, tname1 );
   moon_check_tname_( L, tname2 );
   lua_pushcfunction( L, (lua_CFunction)cast );
   lua_setfield( L, -2, tname2 );
@@ -614,6 +642,119 @@ MOON_API void* moon_testobject( lua_State* L, int idx,
     p = cast( p );
   return p;
 }
+
+
+static void* moon_cast_id_( void* p ) {
+  return p;
+}
+
+
+static void moon_copy_table_( lua_State* L, int src, int dst ) {
+  src = moon_absindex( L, src );
+  dst = moon_absindex( L, dst );
+  lua_pushnil( L );
+  while( lua_next( L, src ) ) {
+    lua_pushvalue( L, -2 ); /* duplicate key */
+    lua_pushvalue( L, -2 ); /* duplicate value */
+    lua_rawset( L, dst );
+    lua_pop( L, 1 ); /* pop value */
+  }
+}
+
+
+MOON_LLINKAGE_BEGIN
+MOON_API int moon_derive( lua_State* L ) {
+  char const* newtype = luaL_checkstring( L, 1 );
+  char const* oldtype = luaL_checkstring( L, 2 );
+  int t = 0;
+  lua_settop( L, 2 );
+  moon_check_tname_( L, newtype );
+  lua_pushvalue( L, 1 );
+  lua_rawget( L, LUA_REGISTRYINDEX );
+  luaL_argcheck( L, lua_isnil( L, -1 ), 1,
+                 "attempt to redefine type" );
+  lua_pop( L, 1 );
+  lua_pushvalue( L, 2 );
+  lua_rawget( L, LUA_REGISTRYINDEX ); /* 3: old metatable */
+  moon_check_metatable_( L, oldtype );
+  /* clone metatable */
+  lua_newtable( L ); /* 4: new metatable */
+  moon_copy_table_( L, 3, 4 );
+  /* replace __tostring */
+  lua_pushvalue( L, 1 );
+  lua_pushcclosure( L, moon_object_default_tostring_, 1 );
+  lua_setfield( L, 4, "__tostring" );
+  /* add cast to old type */
+  lua_pushvalue( L, 2 );
+  lua_pushcfunction( L, moon_getf_( L, "cast",
+                                    (lua_CFunction)moon_cast_id_ ) );
+  lua_rawset( L, 4 );
+  /* replace __index metamethod */
+  lua_pushliteral( L, "__index" );
+  lua_rawget( L, 4 ); /* 5: __index metamethod */
+  t = lua_type( L, 5 );
+  lua_newtable( L ); /* 6: new methods table */
+  lua_pushliteral( L, "__index" ); /* 7: string "__index" */
+  if( t == LUA_TTABLE ) {
+    moon_copy_table_( L, 5, 6 );
+    lua_pushvalue( L, 6 ); /* 8: new methods table */
+  } else if( t == LUA_TFUNCTION ) {
+    lua_CFunction dispatch = moon_getf_( L, "dispatch",
+                                         moon_index_dispatch_ );
+    if( lua_tocfunction( L, 5 ) == dispatch ) {
+      lua_getupvalue( L, 5, 1 ); /* 8: old methods table */
+      moon_copy_table_( L, -1, 6 );
+      lua_pop( L, 1 );
+      lua_pushvalue( L, 6 ); /* 8: new methods table */
+      lua_getupvalue( L, 5, 2 ); /* 9: index func */
+      lua_pushcclosure( L, dispatch, 2 ); /* 8: dispatcher */
+    } else {
+      lua_pushvalue( L, 6 ); /* 8: new methods table */
+      lua_pushvalue( L, 5 ); /* 9: index func */
+      lua_pushcclosure( L, dispatch, 2 ); /* 8: dispatcher */
+    }
+  } else
+    lua_pushvalue( L, 6 ); /* 8: new methods table */
+  lua_rawset( L, 4 );
+  /* register new type */
+  lua_pushvalue( L, 1 );
+  lua_pushvalue( L, 4 );
+  lua_rawset( L, LUA_REGISTRYINDEX );
+  return 1;
+}
+MOON_LLINKAGE_END
+
+
+MOON_LLINKAGE_BEGIN
+MOON_API int moon_downcast( lua_State* L ) {
+  void* h = lua_touserdata( L, 1 );
+  char const* tname = luaL_checkstring( L, 2 );
+  moon_object_cast cast = 0, id_cast = 0;
+  lua_settop( L, 2 );
+  luaL_argcheck( L, h != NULL && lua_getmetatable( L, 1 ), 1,
+                 "object expected" ); /* 3: metatable */
+  luaL_argcheck( L, lua_istable( L, -1 ), 1, "object expected" );
+  lua_getfield( L, -1, "__moon_version" );
+  luaL_argcheck( L, lua_tointeger( L, -1 ) == MOON_VERSION, 1,
+                 "object expected" );
+  lua_pop( L, 1 );
+  moon_check_tname_( L, tname );
+  lua_getfield( L, -1, "__name" ); /* 4: __name */
+  lua_pushvalue( L, 2 );
+  lua_rawget( L, LUA_REGISTRYINDEX ); /* 5: metatable */
+  moon_check_metatable_( L, tname );
+  lua_pushvalue( L, 4 );
+  lua_rawget( L, 5 ); /* 6: cast function */
+  cast = (moon_object_cast)lua_tocfunction( L, -1 );
+  id_cast = (moon_object_cast)moon_getf_( L, "cast",
+                                          (lua_CFunction)moon_cast_id_ );
+  luaL_argcheck( L, cast == id_cast, 1, "invalid downcast" );
+  lua_pop( L, 1 );
+  lua_setmetatable( L, 1 );
+  lua_settop( L, 1 );
+  return 1;
+}
+MOON_LLINKAGE_END
 
 
 MOON_API lua_Integer moon_checkint( lua_State* L, int idx,

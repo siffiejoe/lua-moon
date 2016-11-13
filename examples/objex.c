@@ -163,8 +163,8 @@ static int B_index( lua_State* L ) {
   B* b = moon_checkobject( L, 1, "B" );
   char const* key = luaL_checkstring( L, 2 );
   printf( "__index B (uv1: %d, uv2: %d)\n",
-          (int)lua_tointeger( L, lua_upvalueindex( 3 ) ),
-          (int)lua_tointeger( L, lua_upvalueindex( 4 ) ) );
+          (int)lua_tointeger( L, lua_upvalueindex( 1 ) ),
+          (int)lua_tointeger( L, lua_upvalueindex( 2 ) ) );
   if( 0 == strcmp( key, "f" ) ) {
     lua_pushnumber( L, b->f );
   } else
@@ -199,12 +199,9 @@ static int C_index( lua_State* L ) {
    * normal `lua_touserdata` function: */
   moon_object_header* h = lua_touserdata( L, 1 );
   char const* key = luaL_checkstring( L, 2 );
-  /* The C object type has been/will be registered with two additional
-   * upvalues. Those upvalues can be found at index 3 and 4, because
-   * the first two upvalues are used internally for dispatching. */
   printf( "__index C (uv1: %d, uv2: %d)\n",
-          (int)lua_tointeger( L, lua_upvalueindex( 3 ) ),
-          (int)lua_tointeger( L, lua_upvalueindex( 4 ) ) );
+          (int)lua_tointeger( L, lua_upvalueindex( 1 ) ),
+          (int)lua_tointeger( L, lua_upvalueindex( 2 ) ) );
   if( 0 == strcmp( key, "d" ) ) {
     if( moon_getuvfield( L, 1, "d" ) == LUA_TNIL ) {
       /* The `object_valid_check` makes sure that the parent object
@@ -265,8 +262,16 @@ static int D_index( lua_State* L ) {
     lua_pushinteger( L, d->x );
   else if( 0 == strcmp( key, "y" ) )
     lua_pushinteger( L, d->y );
-  else
-    lua_pushnil( L );
+  else {
+#if LUA_VERSION_NUM < 502
+    lua_getfenv( L, 1 );
+#else
+    lua_getuservalue( L, 1 );
+#endif
+    lua_pushvalue( L, 2 );
+    lua_rawget( L, -2 );
+    lua_replace( L, -2 );
+  }
   return 1;
 }
 
@@ -278,6 +283,16 @@ static int D_newindex( lua_State* L ) {
     d->x = (int)moon_checkint( L, 3, INT_MIN, INT_MAX );
   else if( 0 == strcmp( key, "y" ) )
     d->y = (int)moon_checkint( L, 3, INT_MIN, INT_MAX );
+  else {
+#if LUA_VERSION_NUM < 502
+    lua_getfenv( L, 1 );
+#else
+    lua_getuservalue( L, 1 );
+#endif
+    lua_pushvalue( L, 2 );
+    lua_pushvalue( L, 3 );
+    lua_rawset( L, -3 );
+  }
   return 0;
 }
 
@@ -285,6 +300,18 @@ static int D_newindex( lua_State* L ) {
 static int D_printme( lua_State* L ) {
   D* d = moon_checkobject( L, 1, "D" );
   printf( "D { x = %d, y = %d }\n", d->x, d->y );
+  return 0;
+}
+
+
+static int D_vcall( lua_State* L ) {
+  moon_checkobject( L, 1, "D" );
+  lua_getfield( L, 1, "func" );
+  if( lua_isfunction( L, -1 ) ) {
+    lua_insert( L, 1 );
+    lua_call( L, lua_gettop( L )-1, LUA_MULTRET );
+    return lua_gettop( L );
+  }
   return 0;
 }
 
@@ -349,6 +376,12 @@ static int objex_newD( lua_State* L ) {
   D* d = moon_newobject( L, "D", 0 );
   d->x = 0;
   d->y = 0;
+  lua_newtable( L );
+#if LUA_VERSION_NUM < 502
+  lua_setfenv( L, -2 );
+#else
+  lua_setuservalue( L, -2 );
+#endif
   return 1;
 }
 
@@ -359,6 +392,12 @@ static int objex_getD( lua_State* L ) {
    * expose a global variable to Lua: */
   void** ud = moon_newpointer( L, "D", 0 );
   *ud = &d;
+  lua_newtable( L );
+#if LUA_VERSION_NUM < 502
+  lua_setfenv( L, -2 );
+#else
+  lua_setuservalue( L, -2 );
+#endif
   return 1;
 }
 
@@ -390,6 +429,12 @@ static int objex_makeD( lua_State* L ) {
   *p = newD( x, y );
   if( !*p )
     luaL_error( L, "memory allocation error" );
+  lua_newtable( L );
+#if LUA_VERSION_NUM < 502
+  lua_setfenv( L, -2 );
+#else
+  lua_setuservalue( L, -2 );
+#endif
   return 1;
 }
 
@@ -403,6 +448,8 @@ int luaopen_objex( lua_State* L ) {
     { "newD", objex_newD },
     { "getD", objex_getD },
     { "makeD", objex_makeD },
+    { "derive", moon_derive },
+    { "downcast", moon_downcast },
     { NULL, NULL }
   };
   /* You put metamethods and normal methods in the same luaL_Reg
@@ -436,6 +483,7 @@ int luaopen_objex( lua_State* L ) {
     { "__index", D_index },
     { "__newindex", D_newindex },
     { "printme", D_printme },
+    { "vcall", D_vcall },
     { NULL, NULL }
   };
   /* All object types must be defined once (this creates the

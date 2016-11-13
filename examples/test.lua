@@ -67,6 +67,20 @@ do
   c2:printme()
   c2:printmeD()
   d2:printme()
+  local methods = objex.derive( "Derived", "D" )
+  function methods:func( ... )
+    print( self, self.a, ... )
+  end
+  local function makeDerived()
+    local d = objex.newD()
+    d.a = "a"
+    return objex.downcast( d, "Derived" )
+  end
+  local x = makeDerived()
+  x.x = 1
+  x.y = 2
+  x:printme()
+  x:vcall( 1, 2, 3 )
 end
 collectgarbage()
 
