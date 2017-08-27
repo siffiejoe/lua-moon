@@ -233,7 +233,7 @@ MOON_API void moon_stack_assert_( lua_State* L, char const* file,
 #if LUA_VERSION_NUM < 502
 MOON_API int moon_absindex( lua_State* L, int idx );
 #else
-#  define moon_absindex( L, i ) lua_absindex( L, i )
+#  define moon_absindex( L, i ) lua_absindex( (L), (i) )
 #endif
 
 
