@@ -525,7 +525,7 @@ MOON_API void moon_defcast( lua_State* L, char const* tname1,
   luaL_checkstack( L, 2, "moon_defcast" );
   moon_push_metatable_( L, tname1 );
   moon_check_tname_( L, tname2 );
-  lua_pushcfunction( L, (lua_CFunction)cast );
+  lua_pushcfunction( L, (lua_CFunction)(void(*)(void))cast );
   lua_setfield( L, -2, tname2 );
   lua_pop( L, 1 );
 }
@@ -568,7 +568,7 @@ MOON_API void* moon_checkobject( lua_State* L, int idx,
   lua_pop( L, 1 );
   if( !res ) {
     lua_getfield( L, -1, tname );
-    cast = (moon_object_cast)lua_tocfunction( L, -1 );
+    cast = (moon_object_cast)(void(*)(void))lua_tocfunction( L, -1 );
     lua_pop( L, 1 );
     if( cast == 0 ) {
       char const* name = NULL;
@@ -621,7 +621,7 @@ MOON_API void* moon_testobject( lua_State* L, int idx,
   lua_pop( L, 1 );
   if( !res ) {
     lua_getfield( L, -1, tname );
-    cast = (moon_object_cast)lua_tocfunction( L, -1 );
+    cast = (moon_object_cast)(void(*)(void))lua_tocfunction( L, -1 );
     lua_pop( L, 2 );
     if( cast == 0 )
       return NULL;
@@ -687,7 +687,7 @@ MOON_API int moon_derive( lua_State* L ) {
   /* add cast to old type */
   lua_pushvalue( L, 2 );
   lua_pushcfunction( L, moon_getf_( L, "cast",
-                                    (lua_CFunction)moon_cast_id_ ) );
+                                    (lua_CFunction)(void(*)(void))moon_cast_id_ ) );
   lua_rawset( L, 4 );
   /* replace __index metamethod */
   lua_pushliteral( L, "__index" );
@@ -745,9 +745,8 @@ MOON_API int moon_downcast( lua_State* L ) {
   moon_check_metatable_( L, tname );
   lua_pushvalue( L, 4 );
   lua_rawget( L, 5 ); /* 6: cast function */
-  cast = (moon_object_cast)lua_tocfunction( L, -1 );
-  id_cast = (moon_object_cast)moon_getf_( L, "cast",
-                                          (lua_CFunction)moon_cast_id_ );
+  cast = (moon_object_cast)(void(*)(void))lua_tocfunction( L, -1 );
+  id_cast = (moon_object_cast)(void(*)(void))moon_getf_( L, "cast", (lua_CFunction)(void(*)(void))moon_cast_id_ );
   luaL_argcheck( L, cast == id_cast, 1, "invalid downcast" );
   lua_pop( L, 1 );
   lua_setmetatable( L, 1 );
