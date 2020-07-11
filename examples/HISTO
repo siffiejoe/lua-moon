@@ -1,11 +1,17 @@
 #!/bin/bash
 
-LUAV=5.1
+#LUAV=5.1
 #LUAV=5.2
 #LUAV=5.3
+LUAV=5.4
 
-INC=/usr/include/lua"$LUAV"
-LIB=-llua"$LUAV"
+if [ "$LUAV" == 5.4 ]; then
+  INC=/home/siffiejoe/.self/programs/lua"$LUAV"
+  LIB="-L${INC} -llua$LUAV"
+else
+  INC=/usr/include/lua"$LUAV"
+  LIB=-llua"$LUAV"
+fi
 
 x() {
   echo "#" "$@"; "$@"
