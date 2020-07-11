@@ -18,7 +18,7 @@ description = {
   license = "Tiny"
 }
 dependencies = {
-  "lua >= 5.1, < 5.4"
+  "lua >= 5.1, < 5.5"
 }
 build = {
   type = "builtin",

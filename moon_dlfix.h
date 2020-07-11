@@ -56,6 +56,9 @@ static char const* const moon_dlfix_lib_names[] = {
 #ifdef MOON_DLFIX_LIBNAME
   MOON_DLFIX_LIBNAME,
 #endif /* custom Lua library name */
+  "liblua5.4.so",       /* Lua 5.4, Debian/Ubuntu naming */
+  "liblua5.4.so.0",     /*   same with common SONAME */
+  "liblua54.so",
   "liblua5.3.so",       /* Lua 5.3, Debian/Ubuntu naming */
   "liblua5.3.so.0",     /*   same with common SONAME */
   "liblua53.so",
