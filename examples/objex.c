@@ -159,6 +159,21 @@ static int A_printme( lua_State* L ) {
 }
 
 
+static int B_property_f( lua_State* L ) {
+  B* b = moon_checkobject( L, 1, "B" );
+  printf( "property{f} B (uv1: %d, uv2: %d)\n",
+          (int)lua_tointeger( L, lua_upvalueindex( 1 ) ),
+          (int)lua_tointeger( L, lua_upvalueindex( 2 ) ) );
+  if( lua_gettop( L ) < 3 ) { /* __index */
+    lua_pushnumber( L, b->f );
+    return 1;
+  } else { /* __newindex */
+    b->f = luaL_checknumber( L, 3 );
+    return 0;
+  }
+}
+
+#if 0
 static int B_index( lua_State* L ) {
   B* b = moon_checkobject( L, 1, "B" );
   char const* key = luaL_checkstring( L, 2 );
@@ -183,6 +198,7 @@ static int B_newindex( lua_State* L ) {
     b->f = luaL_checknumber( L, 3 );
   return 0;
 }
+#endif
 
 
 static int B_printme( lua_State* L ) {
@@ -462,9 +478,10 @@ int luaopen_objex( lua_State* L ) {
     { NULL, NULL }
   };
   luaL_Reg const B_methods[] = {
+    { ".f", B_property_f },
+#if 0
     { "__index", B_index },
     { "__newindex", B_newindex },
-#if 0
     { "printme", B_printme },
 #endif
     { NULL, NULL }

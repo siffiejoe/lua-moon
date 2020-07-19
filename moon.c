@@ -1,4 +1,4 @@
-/* Copyright 2013-2016 Philipp Janda <siffiejoe@gmx.net>
+/* Copyright 2013-2020 Philipp Janda <siffiejoe@gmx.net>
  *
  * You may do anything with this work that copyright law would normally
  * restrict, so long as you retain the above notice(s) and this license
@@ -41,7 +41,7 @@ typedef struct moon_object_vcheck_ {
 
 /* For keeping memory consumption as low as possible multiple C
  * values might be stored side-by-side in the same memory block, and
- * we have to figure out the alignment to use for thos values. */
+ * we have to figure out the alignment to use for those values. */
 typedef union {
   lua_Number n;
   double d;
@@ -116,6 +116,18 @@ static int moon_type_error_version_( lua_State* L, int i ) {
 }
 
 
+static int moon_is_property( char const* name ) {
+  return name[ 0 ] == '.';
+}
+static int moon_is_meta( char const* name ) {
+  return name[ 0 ] == '_' && name[ 1 ] == '_';
+}
+static int moon_is_method( char const* name ) {
+  return !moon_is_meta( name ) && !moon_is_property( name );
+}
+
+
+
 /* Default implementation of a __tostring metamethod for moon objects
  * which displays the type name and memory address. */
 MOON_LLINKAGE_BEGIN
@@ -158,21 +170,92 @@ static int moon_object_default_gc_( lua_State* L ) {
 MOON_LLINKAGE_END
 
 
-/* Check the methods table for a given key and then (if unsuccessful)
- * call the registered C function for looking up properties. */
+static int moon_index_dispatch_methods_( lua_State* L ) {
+  if( lua_type( L, lua_upvalueindex( 1 ) ) == LUA_TTABLE ) {
+    lua_pushvalue( L, 2 ); /* duplicate key */
+    lua_rawget( L, lua_upvalueindex( 1 ) );
+    if( !lua_isnil( L, -1 ) )
+      return 1;
+    lua_pop( L, 1 );
+  }
+  return 0;
+}
+
+
+static int moon_index_dispatch_properties_( lua_State* L ) {
+  if( lua_type( L, lua_upvalueindex( 2 ) ) == LUA_TTABLE ) {
+    lua_pushvalue( L, 2 ); /* duplicate key */
+    lua_rawget( L, lua_upvalueindex( 2 ) );
+    if( !lua_isnil( L, -1 ) ) {
+      lua_pushvalue( L, 1 );
+      lua_call( L, 1, 1 );
+      return 1;
+    }
+    lua_pop( L, 1 );
+  }
+  return 0;
+}
+
+
+static int moon_index_dispatch_function_( lua_State* L ) {
+  if( lua_type( L, lua_upvalueindex( 3 ) ) == LUA_TFUNCTION ) {
+    lua_pushvalue( L, lua_upvalueindex( 3 ) );
+    lua_pushvalue( L, 1 );
+    lua_pushvalue( L, 2 );
+    lua_call( L, 2, 1 );
+    return 1;
+  }
+  return 0;
+}
+
+
+static int moon_newindex_dispatch_properties_( lua_State* L ) {
+  if( lua_type( L, lua_upvalueindex( 1 ) ) == LUA_TTABLE ) {
+    lua_pushvalue( L, 2 ); /* duplicate key */
+    lua_rawget( L, lua_upvalueindex( 1 ) );
+    if( lua_isfunction( L, -1 ) ) {
+      lua_pushvalue( L, 1 );
+      lua_pushvalue( L, 2 );
+      lua_pushvalue( L, 3 );
+      lua_call( L, 3, 0 );
+      return 1;
+    }
+    lua_pop( L, 1 );
+  }
+  return 0;
+}
+
+
+static int moon_newindex_dispatch_function_( lua_State* L ) {
+  if( lua_type( L, lua_upvalueindex( 2 ) ) == LUA_TFUNCTION ) {
+    lua_pushvalue( L, lua_upvalueindex( 2 ) );
+    lua_pushvalue( L, 1 );
+    lua_pushvalue( L, 2 );
+    lua_pushvalue( L, 3 );
+    lua_call( L, 3, 0 );
+    return 1;
+  }
+  return 0;
+}
+
+
+/* Check the methods and properties tables for a given key and then
+ * (if unsuccessful) call the registered C function for looking up
+ * properties. */
 MOON_LLINKAGE_BEGIN
 static int moon_index_dispatch_( lua_State* L ) {
-  /* try method table first */
-  lua_pushvalue( L, 2 ); /* duplicate key */
-  lua_rawget( L, lua_upvalueindex( 1 ) );
-  if( !lua_isnil( L, -1 ) )
-    return 1;
-  lua_pop( L, 1 );
-  /* now call function */
-  lua_pushvalue( L, lua_upvalueindex( 2 ) );
-  lua_insert( L, 1 );
-  lua_call( L, 2, 1 );
+  if( !moon_index_dispatch_methods_( L ) &&
+      !moon_index_dispatch_properties_( L ) &&
+      !moon_index_dispatch_function_( L ) )
+    lua_pushnil( L );
   return 1;
+}
+
+static int moon_newindex_dispatch_( lua_State* L ) {
+  if( !moon_newindex_dispatch_properties_( L ) &&
+      !moon_newindex_dispatch_function_( L ) )
+    luaL_error( L, "attempt to set invalid field" );
+  return 0;
 }
 MOON_LLINKAGE_END
 
@@ -202,40 +285,84 @@ static lua_CFunction moon_getf_( lua_State* L, char const* name,
 }
 
 
+static void moon_pushreg_( lua_State* L, luaL_Reg const funcs[],
+                           int (*predicate)( char const* ),
+                           int nups, int firstupvalue, int skip ) {
+  if( funcs != NULL ) {
+    lua_newtable( L );
+    for( ; funcs->func; ++funcs ) {
+      if( predicate( funcs->name ) ) {
+        int i = 0;
+        for( i = 0; i < nups; ++i )
+          lua_pushvalue( L, firstupvalue + i );
+        lua_pushcclosure( L, funcs->func, nups );
+        lua_setfield( L, -2, funcs->name + skip );
+      }
+    }
+  } else
+    lua_pushnil( L );
+
+}
+
+
+static void moon_pushfunction_( lua_State* L, lua_CFunction func,
+                                int nups, int firstupvalue ) {
+  if( func != 0 ) {
+    int i = 0;
+    for( i = 0; i < nups; ++i )
+      lua_pushvalue( L, firstupvalue + i );
+    lua_pushcclosure( L, func, nups );
+  } else
+    lua_pushnil( L );
+}
+
+
 /* Depending on the availability of a methods table and/or a C
  * function for looking up properties this function creates an __index
  * metamethod (function or table). */
 static void moon_makeindex_( lua_State* L, luaL_Reg const methods[],
+                             luaL_Reg const properties[],
                              lua_CFunction pindex, int nups ) {
-  if( methods != NULL ) {
-    lua_newtable( L );
-    for( ; methods->func; ++methods ) {
-      if( methods->name[ 0 ] != '_' || methods->name[ 1 ] != '_' ) {
-        int i = 0;
-        for( i = 0; i < nups; ++i )
-          lua_pushvalue( L, -nups-1 );
-        lua_pushcclosure( L, methods->func, nups );
-        lua_setfield( L, -2, methods->name );
-      }
-    }
-    if( pindex ) {
-      lua_CFunction dispatch = moon_getf_( L, "dispatch",
-                                           moon_index_dispatch_ );
-      int i = 0;
-      for( i = 0; i < nups; ++i )
-        lua_pushvalue( L, -nups-1 );
-      lua_pushcclosure( L, pindex, nups ); /* table, func */
-      lua_pushcclosure( L, dispatch, 2 );
-    }
+  int firstupvalue = lua_gettop( L ) + 1 - nups;
+  if( !properties && !pindex ) { /* methods only (maybe) */
+    moon_pushreg_( L, methods, moon_is_method, nups, firstupvalue, 0 );
     if( nups > 0 ) {
-      lua_replace( L, -nups-1 );
+      lua_replace( L, firstupvalue );
       lua_pop( L, nups-1 );
     }
-  } else if( pindex ) {
+  } else if( !methods && !properties ) { /* index function only */
     lua_pushcclosure( L, pindex, nups );
   } else {
+    lua_CFunction dispatch = moon_getf_( L, "index", moon_index_dispatch_ );
+    moon_pushreg_( L, methods, moon_is_method, nups, firstupvalue, 0 );
+    moon_pushreg_( L, properties, moon_is_property, nups, firstupvalue, 1 );
+    moon_pushfunction_( L, pindex, nups, firstupvalue );
+    lua_pushcclosure( L, dispatch, 3 );
+    if( nups > 0 ) {
+      lua_replace( L, firstupvalue );
+      lua_pop( L, nups-1 );
+    }
+  }
+}
+
+
+static void moon_makenewindex_( lua_State* L, luaL_Reg const properties[],
+                                lua_CFunction pnewindex, int nups ) {
+  if( !properties && !pnewindex ) {
     lua_pop( L, nups );
     lua_pushnil( L );
+  } else if( !properties ) {
+    lua_pushcclosure( L, pnewindex, nups );
+  } else {
+    int firstupvalue = lua_gettop( L ) + 1 - nups;
+    lua_CFunction dispatch = moon_getf_( L, "newindex", moon_newindex_dispatch_ );
+    moon_pushreg_( L, properties, moon_is_property, nups, firstupvalue, 1 );
+    moon_pushfunction_( L, pnewindex, nups, firstupvalue );
+    lua_pushcclosure( L, dispatch, 2 );
+    if( nups > 0 ) {
+      lua_replace( L, firstupvalue );
+      lua_pop( L, nups-1 );
+    }
   }
 }
 
@@ -252,7 +379,9 @@ MOON_API void moon_defobject( lua_State* L, char const* tname,
                               size_t sz, luaL_Reg const* methods,
                               int nups ) {
   int has_methods = 0;
+  int has_properties = 0;
   lua_CFunction index = 0;
+  lua_CFunction newindex = 0;
   moon_check_tname_( L, tname );
   luaL_checkstack( L, 2*nups+4, "moon_defobject" );
   /* we don't use luaL_newmetatable to make sure that we never have a
@@ -269,31 +398,47 @@ MOON_API void moon_defobject( lua_State* L, char const* tname,
     luaL_Reg const* l = methods;
     int i = 0;
     for( ; l->func != NULL; ++l ) {
-      if( l->name[ 0 ] == '_' && l->name[ 1 ] == '_' ) {
-        if( 0 != strcmp( l->name+2, "index" ) ) {
+      if( moon_is_meta( l->name ) ) {
+        int is_index = 0 == strcmp( l->name+2, "index" );
+        int is_newindex = 0 == strcmp( l->name+2, "newindex" );
+        if( !is_index && !is_newindex ) {
           for( i = 0; i < nups; ++i )
             lua_pushvalue( L, -nups-1 );
           lua_pushcclosure( L, l->func, nups );
           lua_setfield( L, -2, l->name );
-        } else /* handle __index later */
+        } else if( is_index ) /* handle __index later */
           index = l->func;
+        else /* handle __newindex later */
+          newindex = l->func;
+      } else if( moon_is_property( l->name ) ) {
+        has_properties = 1;
       } else
         has_methods = 1;
     }
   }
-  if( has_methods || index ) {
+  if( has_methods || has_properties || index ) {
     int i = 0;
     for( i = 0; i < nups; ++i )
       lua_pushvalue( L, -nups-1 );
-    moon_makeindex_( L, has_methods ? methods : NULL, index, nups );
+    moon_makeindex_( L, has_methods ? methods : NULL,
+                        has_properties ? methods : NULL, index, nups );
     lua_setfield( L, -2, "__index" );
+  }
+  if( has_properties || newindex ) {
+    int i = 0;
+    for( i = 0; i < nups; ++i )
+      lua_pushvalue( L, -nups-1 );
+    moon_makenewindex_( L, methods, newindex, nups );
+    lua_setfield( L, -2, "__newindex" );
   }
   lua_pushboolean( L, 0 );
   lua_setfield( L, -2, "__metatable" );
   lua_pushstring( L, tname );
   lua_setfield( L, -2, "__name" );
   lua_pushcfunction( L, moon_object_default_gc_ );
-  lua_setfield( L, -2, "__gc" );
+  lua_pushvalue( L, -1);
+  lua_setfield( L, -3, "__gc" );
+  lua_setfield( L, -2, "__close" );
   lua_pushinteger( L, MOON_VERSION );
   lua_setfield( L, -2, "__moon_version" );
   lua_pushinteger( L, (lua_Integer)sz );
@@ -492,7 +637,7 @@ MOON_API int moon_getmethods( lua_State* L, char const* tname ) {
   if( t == LUA_TTABLE )
     return t;
   else if( t == LUA_TFUNCTION ) {
-    lua_CFunction dispatch = moon_getf_( L, "dispatch",
+    lua_CFunction dispatch = moon_getf_( L, "index",
                                          moon_index_dispatch_ );
     if( lua_tocfunction( L, -1 ) == dispatch &&
         lua_getupvalue( L, -1, 1 ) != NULL ) {
@@ -699,19 +844,22 @@ MOON_API int moon_derive( lua_State* L ) {
     moon_copy_table_( L, 5, 6 );
     lua_pushvalue( L, 6 ); /* 8: new methods table */
   } else if( t == LUA_TFUNCTION ) {
-    lua_CFunction dispatch = moon_getf_( L, "dispatch",
+    lua_CFunction dispatch = moon_getf_( L, "index",
                                          moon_index_dispatch_ );
     if( lua_tocfunction( L, 5 ) == dispatch ) {
       lua_getupvalue( L, 5, 1 ); /* 8: old methods table */
-      moon_copy_table_( L, -1, 6 );
+      if( lua_istable( L, -1 ) )
+        moon_copy_table_( L, -1, 6 );
       lua_pop( L, 1 );
       lua_pushvalue( L, 6 ); /* 8: new methods table */
-      lua_getupvalue( L, 5, 2 ); /* 9: index func */
-      lua_pushcclosure( L, dispatch, 2 ); /* 8: dispatcher */
+      lua_getupvalue( L, 5, 2 ); /* 9: properties */
+      lua_getupvalue( L, 5, 3 ); /* 10: index func */
+      lua_pushcclosure( L, dispatch, 3 ); /* 8: dispatcher */
     } else {
       lua_pushvalue( L, 6 ); /* 8: new methods table */
-      lua_pushvalue( L, 5 ); /* 9: index func */
-      lua_pushcclosure( L, dispatch, 2 ); /* 8: dispatcher */
+      lua_pushnil( L ); /* 9: no properties */
+      lua_pushvalue( L, 5 ); /* 10: index func */
+      lua_pushcclosure( L, dispatch, 3 ); /* 8: dispatcher */
     }
   } else
     lua_pushvalue( L, 6 ); /* 8: new methods table */

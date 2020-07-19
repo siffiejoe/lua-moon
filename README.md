@@ -121,15 +121,22 @@ run.
 
 This function creates a new metatable and registers the functions in
 the `luaL_Reg` array (functions starting with double underscores `__`
-go into the metatable, the rest goes into a table used by the
-`__index` metafield). In case a metatable with the same name already
-exists, an error is raised. The `userdata_size` is stored in the
-metatable for the `moon_newobject` function -- use a size of 0 to
-prohibit use of `moon_newobject` (e.g. for incomplete types). If `nup`
-is non-zero, it pops those upvalues from the current Lua stack top and
-makes them available to all registered functions (metamethods *and*
-methods). A `__gc` metamethod and a default `__tostring` metamethod
-are provided by `moon_defobject` as well.
+go into the metatable, functions starting with a fullstop `.` are
+setup as properties, and the rest goes into a table used by the
+`__index` metafield). Property functions act as `__index` and
+`__newindex` functions at the same time, i.e. they should return a
+value when called with two arguments, and assign the third value when
+called with three. If the `luaL_Reg` array also contains an `__index`
+and/or `__newindex` function, those functions are called as fallbacks
+when method/property lookup has failed. In case a metatable with the
+given name already exists, an error is raised. The `userdata_size` is
+stored in the metatable for the `moon_newobject` function -- use a
+size of 0 to prohibit use of `moon_newobject` (e.g. for incomplete
+types). If `nup` is non-zero, it pops those upvalues from the current
+Lua stack top and makes them available to all registered functions
+(metamethods, property functions, *and* methods). A `__gc` metamethod
+and a default `__tostring` metamethod are provided by `moon_defobject`
+as well.
 
 
 ####                       `moon_newobject`                       ####
